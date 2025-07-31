@@ -1848,8 +1848,127 @@ class CodeBlockMd extends BlockMd {
     codes = codes.replaceAll(r"```", "").trim();
     bool closed = text.endsWith("```");
 
+    // Special handling for LaTeX code blocks
+    if (name.toLowerCase() == 'latex' || name.toLowerCase() == 'tex') {
+      return _buildLatexCodeBlock(context, codes, config);
+    }
+
     return config.codeBuilder?.call(context, name, codes, closed) ??
         CodeField(name: name, codes: codes);
+  }
+
+  // Build LaTeX code block with proper rendering
+  Widget _buildLatexCodeBlock(BuildContext context, String latexContent, GptMarkdownConfig config) {
+    final displayType = _LatexRenderingHelpers.getLatexDisplayType(latexContent);
+    final workaround = config.latexWorkaround ?? (String tex) => tex;
+    
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0F0F),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with badge and buttons
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                // LaTeX badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    displayType.toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF8A8A8A),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // Expand button
+                InkWell(
+                  onTap: () => _LatexRenderingHelpers.showLatexExpandedView(
+                    context, 
+                    latexContent, 
+                    displayType,
+                    config.style ?? const TextStyle(),
+                    workaround: workaround,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    child: const Icon(
+                      Icons.open_in_full,
+                      color: Color(0xFFA0A0A0),
+                      size: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Share button
+                _LatexShareButton(latexContent: latexContent, displayType: displayType),
+                const SizedBox(width: 8),
+                // Copy button  
+                _LatexCopyButton(latexContent: latexContent),
+              ],
+            ),
+          ),
+          // Content area - rendered LaTeX
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: (() {
+                try {
+                  final processedLatex = workaround(latexContent);
+                  return Math.tex(
+                    processedLatex,
+                    textStyle: TextStyle(
+                      color: config.style?.color ?? Colors.white,
+                      fontSize: config.style?.fontSize ?? 16.0,
+                    ),
+                    mathStyle: MathStyle.display,
+                    settings: const TexParserSettings(strict: Strict.ignore),
+                  );
+                } catch (e) {
+                  debugPrint('LaTeX rendering failed in code block: $e');
+                  return Text(
+                    'LaTeX Error: $e',
+                    style: TextStyle(color: Colors.red[300], fontSize: 12),
+                  );
+                }
+              })(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
