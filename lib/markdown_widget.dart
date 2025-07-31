@@ -227,15 +227,26 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
                 width: 1,
               ),
             ),
-            child: Text(
-              label.toPlainText(),
-              style: TextStyle(
-                color: widget.mdcolor,
-                fontFamily: 'Courier New',
-                fontSize: widget.fontSize * 0.9,
-                fontWeight: FontWeight.w500,
-                height: 1.2,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.link,
+                  size: widget.fontSize * 0.8,
+                  color: widget.mdcolor.withOpacity(0.7),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  label.toPlainText(),
+                  style: TextStyle(
+                    color: widget.mdcolor,
+                    fontFamily: 'Courier New',
+                    fontSize: widget.fontSize * 0.9,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ),
+                ),
+              ],
             ),
           ),
         );
