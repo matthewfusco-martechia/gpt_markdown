@@ -72,9 +72,9 @@ class CustomTableColumnWidth extends TableColumnWidth {
     double width = 50;
     for (var each in cells) {
       each.layout(const BoxConstraints(), parentUsesSize: true);
-      width = max(width, each.size.width);
+      width = math.max(width, each.size.width);
     }
-    return min(containerWidth, width);
+    return math.min(containerWidth, width);
   }
 
   @override

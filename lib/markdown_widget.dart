@@ -228,8 +228,8 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
   }
 }
 
-// ThinkBlock widget (you'll need to implement this based on your existing logic)
-class ThinkBlock extends StatelessWidget {
+// ThinkBlock widget that mirrors Cursor's thinking interface exactly
+class ThinkBlock extends StatefulWidget {
   final String content;
   final bool isComplete;
   final double fontSize;
@@ -246,51 +246,141 @@ class ThinkBlock extends StatelessWidget {
   });
 
   @override
+  State<ThinkBlock> createState() => _ThinkBlockState();
+}
+
+class _ThinkBlockState extends State<ThinkBlock> with TickerProviderStateMixin {
+  bool _isExpanded = false;
+  late AnimationController _animationController;
+  late Animation<double> _expandAnimation;
+  late AnimationController _rotationController;
+  late Animation<double> _rotationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+    _rotationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _rotationAnimation = CurvedAnimation(
+      parent: _rotationController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (_isExpanded) {
+        _animationController.forward();
+        _rotationController.forward();
+      } else {
+        _animationController.reverse();
+        _rotationController.reverse();
+      }
+    });
+    widget.onToggle();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Implement your think block UI here
-    // This is a placeholder - customize based on your existing design
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.blue.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
+      margin: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.psychology,
-                color: Colors.blue,
-                size: fontSize,
+          // Header that matches Cursor exactly
+          InkWell(
+            onTap: _toggle,
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A), // Cursor's gray header background
+                borderRadius: BorderRadius.circular(6),
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Think Block',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w600,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Brain icon matching Cursor's style
+                  Icon(
+                    Icons.psychology_outlined,
+                    color: const Color(0xFF9CA3AF), // Cursor's gray icon color
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  // Text matching Cursor's exact styling
+                  Text(
+                    'Thought for 1 second',
+                    style: TextStyle(
+                      color: const Color(0xFF9CA3AF), // Cursor's gray text color
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: 0.0,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Chevron icon that rotates on expand/collapse
+                  AnimatedBuilder(
+                    animation: _rotationAnimation,
+                    builder: (context, child) {
+                      return Transform.rotate(
+                        angle: _rotationAnimation.value * 1.5708, // 90 degrees in radians
+                        child: Icon(
+                          Icons.chevron_right,
+                          color: const Color(0xFF9CA3AF),
+                          size: 16,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Expandable content with smooth animation
+          SizeTransition(
+            sizeFactor: _expandAnimation,
+            axisAlignment: -1.0,
+            child: Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A), // Dark background for content
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFF2A2A2A),
+                  width: 1,
                 ),
               ),
-              const Spacer(),
-              IconButton(
-                onPressed: onToggle,
-                icon: const Icon(Icons.expand_more),
-                color: Colors.blue,
-              ),
-            ],
+              child: widget.contentWidget ?? 
+                Text(
+                  widget.content,
+                  style: TextStyle(
+                    color: const Color(0xFFD1D5DB), // Light gray text for content
+                    fontSize: widget.fontSize * 0.9,
+                    height: 1.5,
+                    fontFamily: 'SF Pro Text', // Cursor's font family
+                  ),
+                ),
+            ),
           ),
-          if (contentWidget != null) ...[
-            const SizedBox(height: 8),
-            contentWidget!,
-          ],
         ],
       ),
     );

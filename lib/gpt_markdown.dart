@@ -9,7 +9,7 @@ import 'package:gpt_markdown/custom_widgets/custom_rb_cb.dart';
 import 'package:gpt_markdown/custom_widgets/unordered_ordered_list.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:math';
+import 'dart:math' as math;
 import 'dart:io';
 
 import 'custom_widgets/code_field.dart';
