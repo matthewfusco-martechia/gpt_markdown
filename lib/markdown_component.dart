@@ -637,1058 +637,6 @@ class ItalicMd extends InlineMd {
   }
 }
 
-/// A stateful copy button widget for LaTeX content
-class _LatexCopyButton extends StatefulWidget {
-  final String latexContent;
-
-  const _LatexCopyButton({super.key, required this.latexContent});
-
-  @override
-  State<_LatexCopyButton> createState() => _LatexCopyButtonState();
-}
-
-class _LatexCopyButtonState extends State<_LatexCopyButton> {
-  bool isCopied = false;
-
-  void handleCopy() async {
-    try {
-      if (widget.latexContent.isNotEmpty) {
-        HapticFeedback.lightImpact();
-        await Clipboard.setData(ClipboardData(text: widget.latexContent));
-        if (mounted) {
-          setState(() {
-            isCopied = true;
-          });
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              setState(() {
-                isCopied = false;
-              });
-            }
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to copy: ${e.toString()}'),
-            backgroundColor: Colors.red[700],
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: handleCopy,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        child: Icon(
-          isCopied ? Icons.check : Icons.copy_outlined,
-          color: isCopied ? const Color(0xFF4CAF50) : const Color(0xFFA0A0A0),
-          size: 18,
-        ),
-      ),
-    );
-  }
-}
-
-/// A share button widget for LaTeX content
-class _LatexShareButton extends StatelessWidget {
-  final String latexContent;
-  final String displayType;
-
-  const _LatexShareButton({
-    super.key,
-    required this.latexContent,
-    required this.displayType,
-  });
-
-  void handleShare(BuildContext context) async {
-    try {
-      if (latexContent.isEmpty) return;
-      HapticFeedback.lightImpact();
-
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'latex_${displayType.toLowerCase().replaceAll(' ', '_')}_$timestamp.tex';
-
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/$fileName');
-
-      await file.writeAsString(latexContent);
-
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: '$displayType LaTeX file',
-        subject: '$displayType LaTeX',
-      );
-    } catch (e) {
-      debugPrint('LaTeX share failed: ${e.toString()}');
-      // Fallback to text sharing
-      try {
-        await Share.share(
-          latexContent,
-          subject: '$displayType LaTeX',
-        );
-      } catch (fallbackError) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to share: ${fallbackError.toString()}'),
-              backgroundColor: Colors.red[700],
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => handleShare(context),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        child: const Icon(
-          Icons.share_outlined,
-          color: Color(0xFFA0A0A0),
-          size: 18,
-        ),
-      ),
-    );
-  }
-}
-
-/// Helper functions for enhanced LaTeX rendering
-class _LatexRenderingHelpers {
-  // Get appropriate display type label
-  static String getLatexDisplayType(String content) {
-    if (content.contains(RegExp(r'\\begin\{equation\}'))) return 'LaTeX Equation';
-    if (content.contains(RegExp(r'\\begin\{align\}'))) return 'LaTeX Alignment';
-    if (content.contains(RegExp(r'\\documentclass'))) return 'LaTeX Document';
-    if (content.contains(RegExp(r'\\\[')) && content.contains(RegExp(r'\\\]'))) return 'LaTeX Display Math';
-    if (content.contains(RegExp(r'\$\$'))) return 'LaTeX Math';
-    return 'LaTeX Code';
-  }
-
-  // Show expanded view for LaTeX content
-  static void showLatexExpandedView(BuildContext context, String latexData, String displayType, TextStyle style, {String Function(String)? workaround}) {
-    HapticFeedback.lightImpact();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF141414),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (BuildContext modalContext) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          minChildSize: 0.5,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (_, controller) {
-            return Column(
-              children: [
-                // Modal Header
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1A1A1A),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      // LaTeX badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2A2A2A),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          displayType.toUpperCase(),
-                          style: const TextStyle(
-                            color: Color(0xFF8A8A8A),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      // Share button
-                      _LatexShareButton(latexContent: latexData, displayType: displayType),
-                      const SizedBox(width: 12),
-                      // Copy button
-                      _LatexCopyButton(latexContent: latexData),
-                      const SizedBox(width: 12),
-                      // Close button
-                      InkWell(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.of(modalContext).pop();
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(
-                            Icons.close,
-                            color: Color(0xFFA0A0A0),
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Expanded content
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: controller,
-                    padding: const EdgeInsets.all(20),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F0F0F),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF2A2A2A)),
-                      ),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: (() {
-                          try {
-                            final processedLatex = workaround != null ? workaround(latexData) : latexData;
-                            return Math.tex(
-                              processedLatex,
-                              textStyle: TextStyle(
-                                color: style.color ?? Colors.white,
-                                fontSize: (style.fontSize ?? 16.0) * 1.3, // Expanded size
-                              ),
-                              mathStyle: MathStyle.display,
-                              settings: const TexParserSettings(strict: Strict.ignore),
-                            );
-                          } catch (e) {
-                            debugPrint('LaTeX rendering failed in expanded view: $e');
-                            return Text(
-                              'LaTeX Error: $e',
-                              style: TextStyle(color: Colors.red[300], fontSize: 14),
-                            );
-                          }
-                        })(),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Build LaTeX content with proper rendering
-  static Widget buildLatexContent(String content, TextStyle style, {bool isExpanded = false, String Function(String)? workaround}) {
-    debugPrint('=== LaTeX Rendering Debug ===');
-    debugPrint('Original content: "$content"');
-    
-    try {
-      // Apply workaround function if provided, otherwise use content as-is
-      String processedContent = workaround != null ? workaround(content) : content;
-      debugPrint('After workaround: "$processedContent"');
-      
-      // Now remove LaTeX delimiters from the processed content
-      String cleanContent = removeLatexDelimiters(processedContent);
-      debugPrint('After delimiter removal: "$cleanContent"');
-      
-      // Skip if content is empty after cleaning
-      if (cleanContent.trim().isEmpty) {
-        debugPrint('Empty content after cleaning');
-        return const Text('Empty LaTeX content', style: TextStyle(color: Colors.grey));
-      }
-      
-      // Try to render the LaTeX with cleaned content
-      debugPrint('Attempting to render LaTeX with Math.tex');
-      final result = Math.tex(
-        cleanContent,
-        textStyle: TextStyle(
-          color: style.color ?? Colors.white,
-          fontSize: isExpanded ? (style.fontSize ?? 16.0) * 1.3 : (style.fontSize ?? 16.0),
-        ),
-        mathStyle: MathStyle.display,
-        settings: const TexParserSettings(strict: Strict.ignore),
-        options: MathOptions(
-          fontSize: isExpanded ? (style.fontSize ?? 16.0) * 1.3 : (style.fontSize ?? 16.0),
-          color: style.color ?? Colors.white,
-        ),
-      );
-      debugPrint('LaTeX rendering successful');
-      return result;
-    } catch (e) {
-      // Fallback to displaying raw LaTeX if rendering fails
-      debugPrint('LaTeX rendering failed with error: $e');
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2A),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: const Color(0xFF3A3A3A)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'LaTeX Rendering Error',
-              style: TextStyle(
-                color: Colors.red[300],
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Error: $e',
-              style: TextStyle(
-                color: Colors.red[400],
-                fontSize: 10,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SelectableText(
-              content,
-              style: TextStyle(
-                fontFamily: 'Courier New',
-                fontSize: style.fontSize ?? 14.0,
-                color: const Color(0xFFE1E1E1),
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  // Comprehensive LaTeX delimiter removal
-  static String removeLatexDelimiters(String content) {
-    String cleanContent = content.trim();
-    
-    // Handle basic math delimiters with priority order - be more conservative
-    // Handle \[ ... \] delimiters (display math)
-    if (cleanContent.startsWith('\\[') && cleanContent.endsWith('\\]')) {
-      cleanContent = cleanContent.substring(2, cleanContent.length - 2).trim();
-    }
-    // Handle \( ... \) delimiters (inline math)
-    else if (cleanContent.startsWith('\\(') && cleanContent.endsWith('\\)')) {
-      cleanContent = cleanContent.substring(2, cleanContent.length - 2).trim();
-    }
-    // Handle $$ ... $$ delimiters (display math)
-    else if (cleanContent.startsWith('\$\$') && cleanContent.endsWith('\$\$')) {
-      cleanContent = cleanContent.substring(2, cleanContent.length - 2).trim();
-    }
-    // Handle single $ ... $ delimiters (inline math)
-    else if (cleanContent.startsWith('\$') && cleanContent.endsWith('\$') && cleanContent.length > 2) {
-      cleanContent = cleanContent.substring(1, cleanContent.length - 1).trim();
-    }
-    
-    // Only remove specific LaTeX environments that cause issues, preserve most content
-    final environmentsToRemove = [
-      'equation*',
-      'align*', 
-      'gather*',
-      'multline*',
-    ];
-    
-    // Remove only problematic environments
-    for (final env in environmentsToRemove) {
-      final beginPattern = RegExp('\\\\begin\\{$env\\}\\s*', multiLine: true);
-      final endPattern = RegExp('\\s*\\\\end\\{$env\\}', multiLine: true);
-      cleanContent = cleanContent.replaceAll(beginPattern, '');
-      cleanContent = cleanContent.replaceAll(endPattern, '');
-    }
-    
-    // Only clean up excessive whitespace, preserve LaTeX syntax
-    cleanContent = cleanContent
-        .replaceAll(RegExp(r'\n\s*\n'), ' ')  // Multiple newlines to single space
-        .replaceAll(RegExp(r'\s+'), ' ')      // Multiple spaces to single space
-        .trim();
-    
-    return cleanContent;
-  }
-}
-
-class LatexMathMultiLine extends BlockMd {
-  @override
-  String get expString => (r"\ *\\\[((?:.)*?)\\\]|(\ *\\begin.*?\\end{.*?})|(?<!\\)\$\$((?:.)*?)\$\$(?!\\)");
-  @override
-  RegExp get exp => RegExp(expString, dotAll: true, multiLine: true);
-
-  @override
-  Widget build(
-    BuildContext context,
-    String text,
-    final GptMarkdownConfig config,
-  ) {
-    var p0 = exp.firstMatch(text.trim());
-    String mathText = p0?[1] ?? p0?[2] ?? p0?[3] ?? '';
-    var workaround = config.latexWorkaround ?? (String tex) => tex;
-
-    // Check if this LaTeX math is likely a duplicate of content in a code block
-    // This happens when users include both ```latex and \[ \] for the same formula
-    if (_isDuplicateLatexContent(context, mathText)) {
-      // Return empty widget to skip rendering duplicate content
-      return const SizedBox.shrink();
-    }
-
-    // If custom latexBuilder is provided, use it
-    if (config.latexBuilder != null) {
-      return config.latexBuilder!(
-        context,
-        workaround(mathText),
-        config.style ?? const TextStyle(),
-        false,
-      );
-    }
-
-    // TEMPORARY: Test original LaTeX rendering approach
-    debugPrint('=== Testing Original LaTeX Approach ===');
-    debugPrint('Raw mathText: "$mathText"');
-    
-    try {
-      final processedMath = workaround(mathText);
-      debugPrint('After workaround: "$processedMath"');
-      
-      debugPrint('Original approach successful, wrapping in container');
-      
-      // If that works, wrap it in our styled container
-      final displayType = _LatexRenderingHelpers.getLatexDisplayType(mathText);
-      
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F0F0F),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with badge and buttons
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1A1A1A),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
-              ),
-              child: Row(
-                children: [
-                  // LaTeX badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A2A),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      displayType.toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(0xFF8A8A8A),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  // Expand button
-                  InkWell(
-                    onTap: () => _LatexRenderingHelpers.showLatexExpandedView(
-                      context, 
-                      mathText, 
-                      displayType,
-                      config.style ?? const TextStyle(),
-                      workaround: workaround,
-                    ),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      child: const Icon(
-                        Icons.open_in_full,
-                        color: Color(0xFFA0A0A0),
-                        size: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Share button
-                  _LatexShareButton(latexContent: mathText, displayType: displayType),
-                  const SizedBox(width: 8),
-                  // Copy button  
-                  _LatexCopyButton(latexContent: mathText),
-                ],
-              ),
-            ),
-            // Content area - rendered LaTeX
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1A1A1A),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-              ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: (() {
-                  try {
-                    final processedMath = workaround(mathText);
-                    return Math.tex(
-                      processedMath,
-                      textStyle: TextStyle(
-                        color: config.style?.color ?? Colors.white,
-                        fontSize: config.style?.fontSize ?? 16.0,
-                      ),
-                      mathStyle: MathStyle.display,
-                      settings: const TexParserSettings(strict: Strict.ignore),
-                    );
-                  } catch (e) {
-                    debugPrint('LaTeX rendering failed in second container: $e');
-                    return Text(
-                      'LaTeX Error: $e',
-                      style: TextStyle(color: Colors.red[300], fontSize: 12),
-                    );
-                  }
-                })(),
-              ),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      debugPrint('Original approach also failed: $e');
-      
-      // Fallback to our previous enhanced rendering approach
-      final displayType = _LatexRenderingHelpers.getLatexDisplayType(mathText);
-      
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F0F0F),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with badge and buttons
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1A1A1A),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
-              ),
-              child: Row(
-                children: [
-                  // LaTeX badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A2A),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      displayType.toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(0xFF8A8A8A),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  // Expand button
-                  InkWell(
-                    onTap: () => _LatexRenderingHelpers.showLatexExpandedView(
-                      context, 
-                      mathText, 
-                      displayType,
-                      config.style ?? const TextStyle(),
-                      workaround: workaround,
-                    ),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      child: const Icon(
-                        Icons.open_in_full,
-                        color: Color(0xFFA0A0A0),
-                        size: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Share button
-                  _LatexShareButton(latexContent: mathText, displayType: displayType),
-                  const SizedBox(width: 8),
-                  // Copy button  
-                  _LatexCopyButton(latexContent: mathText),
-                ],
-              ),
-            ),
-            // Content area - rendered LaTeX
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1A1A1A),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-              ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: (() {
-                  try {
-                    final processedMath = workaround(mathText);
-                    return Math.tex(
-                      processedMath,
-                      textStyle: TextStyle(
-                        color: config.style?.color ?? Colors.white,
-                        fontSize: config.style?.fontSize ?? 16.0,
-                      ),
-                      mathStyle: MathStyle.display,
-                      settings: const TexParserSettings(strict: Strict.ignore),
-                    );
-                  } catch (e) {
-                    debugPrint('LaTeX rendering failed in second container: $e');
-                    return Text(
-                      'LaTeX Error: $e',
-                      style: TextStyle(color: Colors.red[300], fontSize: 12),
-                    );
-                  }
-                })(),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-  
-  // Helper method to detect if LaTeX math content is likely a duplicate of code block content
-  bool _isDuplicateLatexContent(BuildContext context, String mathText) {
-    // Conservative heuristic: only skip very simple mathematical expressions
-    // that are commonly duplicated in both ```latex blocks and \[ \] format
-    
-    String cleanMath = mathText.trim();
-    
-    // Skip if it's empty
-    if (cleanMath.isEmpty) return false;
-    
-    // Don't skip complex LaTeX (likely legitimate standalone math)
-    if (cleanMath.contains('\\begin{') || 
-        cleanMath.contains('\\end{') ||
-        cleanMath.contains('\\align') ||
-        cleanMath.contains('\\equation') ||
-        cleanMath.contains('\\matrix')) {
-      return false;
-    }
-    
-    // Don't skip very long expressions (likely legitimate)
-    if (cleanMath.length > 150) {
-      return false;
-    }
-    
-    // Only skip if it looks like a simple formula that's commonly duplicated
-    // Common patterns: f(x) = ..., basic algebra, simple chemistry
-    bool isSimpleFormula = 
-        cleanMath.contains('f(x)') ||
-        cleanMath.contains('=') && cleanMath.length < 50 ||
-        (cleanMath.contains('\\text{') && cleanMath.contains('\\rightarrow')) ||
-        RegExp(r'^[a-zA-Z]\s*=\s*[^=]+$').hasMatch(cleanMath);
-    
-    return isSimpleFormula;
-  }
-}
-
-/// Italic text component
-class LatexMath extends InlineMd {
-  @override
-  RegExp get exp => RegExp(
-    [
-      r"\\\((.*?)\\\)",
-      r"(?<!\\)\$((?:\\.|[^$])*?)\$(?!\\)", // Add dollar sign support back
-    ].join("|"),
-    dotAll: true,
-  );
-
-  @override
-  InlineSpan span(
-    BuildContext context,
-    String text,
-    final GptMarkdownConfig config,
-  ) {
-    var p0 = exp.firstMatch(text.trim());
-    p0?.group(0);
-    String mathText = p0?[1]?.toString() ?? p0?[2]?.toString() ?? "";
-    var workaround = config.latexWorkaround ?? (String tex) => tex;
-
-    debugPrint('=== Inline LaTeX Debug ===');
-    debugPrint('Raw text: "$text"');
-    debugPrint('Extracted mathText: "$mathText"');
-
-    // If custom latexBuilder is provided, use it
-    if (config.latexBuilder != null) {
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.baseline,
-        baseline: TextBaseline.alphabetic,
-        child: config.latexBuilder!(
-          context,
-          workaround(mathText),
-          config.style ?? const TextStyle(),
-          true,
-        ),
-      );
-    }
-
-    // Use simple inline LaTeX rendering (no complex container for inline math)
-    try {
-      final processedMath = workaround(mathText);
-      debugPrint('After workaround: "$processedMath"');
-      
-      final result = Math.tex(
-        processedMath,
-        textStyle: TextStyle(
-          color: config.style?.color ?? Colors.white,
-          fontSize: config.style?.fontSize ?? 16.0,
-        ),
-        mathStyle: MathStyle.text, // Use text style for inline math
-        settings: const TexParserSettings(strict: Strict.ignore),
-      );
-      
-      debugPrint('Inline LaTeX rendering successful');
-      
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.baseline,
-        baseline: TextBaseline.alphabetic,
-        child: result,
-      );
-    } catch (e) {
-      debugPrint('Inline LaTeX rendering failed: $e');
-      
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.baseline,
-        baseline: TextBaseline.alphabetic,
-        child: (() {
-          try {
-            final processedMath = workaround(mathText);
-            return Math.tex(
-              processedMath,
-              textStyle: TextStyle(
-                color: config.style?.color ?? Colors.white,
-                fontSize: config.style?.fontSize ?? 16.0,
-              ),
-              mathStyle: MathStyle.text,
-              settings: const TexParserSettings(strict: Strict.ignore),
-            );
-          } catch (e) {
-            debugPrint('Inline LaTeX rendering failed: $e');
-            return Text(
-              'LaTeX Error',
-              style: TextStyle(color: Colors.red[300], fontSize: 12),
-            );
-          }
-        })(),
-      );
-    }
-  }
-}
-
-/// source text component
-class SourceTag extends InlineMd {
-  @override
-  RegExp get exp => RegExp(r"(?:【.*?)?\[(\d+?)\]");
-
-  @override
-  InlineSpan span(
-    BuildContext context,
-    String text,
-    final GptMarkdownConfig config,
-  ) {
-    var match = exp.firstMatch(text.trim());
-    var content = match?[1];
-    if (content == null) {
-      return const TextSpan();
-    }
-    return WidgetSpan(
-      alignment: PlaceholderAlignment.middle,
-      child: Padding(
-        padding: const EdgeInsets.all(2),
-        child:
-            config.sourceTagBuilder?.call(
-              context,
-              content,
-              const TextStyle(),
-            ) ??
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: Material(
-                color: Theme.of(context).colorScheme.onInverseSurface,
-                shape: const OvalBorder(),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    content,
-                    // style: (style ?? const TextStyle()).copyWith(),
-                    textDirection: config.textDirection,
-                  ),
-                ),
-              ),
-            ),
-      ),
-    );
-  }
-}
-
-/// Link text component
-class ATagMd extends InlineMd {
-  @override
-  RegExp get exp => RegExp(r"(?<!\!)\[.*\]\([^\s]*\)");
-
-  @override
-  InlineSpan span(
-    BuildContext context,
-    String text,
-    final GptMarkdownConfig config,
-  ) {
-    var bracketCount = 0;
-    var start = 1;
-    var end = 0;
-    for (var i = 0; i < text.length; i++) {
-      if (text[i] == '[') {
-        bracketCount++;
-      } else if (text[i] == ']') {
-        bracketCount--;
-        if (bracketCount == 0) {
-          end = i;
-          break;
-        }
-      }
-    }
-
-    if (text[end + 1] != '(') {
-      return const TextSpan();
-    }
-
-    // First try to find the basic pattern
-    // final basicMatch = RegExp(r'(?<!\!)\[(.*)\]\(').firstMatch(text.trim());
-    // if (basicMatch == null) {
-    //   return const TextSpan();
-    // }
-
-    final linkText = text.substring(start, end);
-    final urlStart = end + 2;
-
-    // Now find the balanced closing parenthesis
-    int parenCount = 0;
-    int urlEnd = urlStart;
-
-    for (int i = urlStart; i < text.length; i++) {
-      final char = text[i];
-
-      if (char == '(') {
-        parenCount++;
-      } else if (char == ')') {
-        if (parenCount == 0) {
-          // This is the closing parenthesis of the link
-          urlEnd = i;
-          break;
-        } else {
-          parenCount--;
-        }
-      }
-    }
-
-    if (urlEnd == urlStart) {
-      // No closing parenthesis found
-      return const TextSpan();
-    }
-
-    final url = text.substring(urlStart, urlEnd).trim();
-
-    var builder = config.linkBuilder;
-
-    var ending = text.substring(urlEnd + 1);
-
-    var endingSpans = MarkdownComponent.generate(
-      context,
-      ending,
-      config,
-      false,
-    );
-    var theme = GptMarkdownTheme.of(context);
-    var linkTextSpan = TextSpan(
-      children: MarkdownComponent.generate(context, linkText, config, false),
-      style: config.style?.copyWith(
-        color: theme.linkColor,
-        decorationColor: theme.linkColor,
-      ),
-    );
-
-    // Use custom builder if provided
-    WidgetSpan? child;
-    if (builder != null) {
-      child = WidgetSpan(
-        child: GestureDetector(
-          onTap: () => config.onLinkTap?.call(url, linkText),
-          child: builder(
-            context,
-            linkTextSpan,
-            url,
-            config.style ?? const TextStyle(),
-          ),
-        ),
-      );
-    }
-
-    // Default rendering
-    child ??= WidgetSpan(
-      alignment: PlaceholderAlignment.baseline,
-      baseline: TextBaseline.alphabetic,
-      child: LinkButton(
-        hoverColor: theme.linkHoverColor,
-        color: theme.linkColor,
-        onPressed: () {
-          config.onLinkTap?.call(url, linkText);
-        },
-        text: linkText,
-        config: config,
-        child: config.getRich(linkTextSpan),
-      ),
-    );
-    var textSpan = TextSpan(children: [child, ...endingSpans]);
-    return textSpan;
-  }
-}
-
-/// Image component
-class ImageMd extends InlineMd {
-  @override
-  RegExp get exp => RegExp(r"\!\[[^\[\]]*\]\([^\s]*\)");
-
-  @override
-  InlineSpan span(
-    BuildContext context,
-    String text,
-    final GptMarkdownConfig config,
-  ) {
-    // First try to find the basic pattern
-    final basicMatch = RegExp(r'\!\[([^\[\]]*)\]\(').firstMatch(text.trim());
-    if (basicMatch == null) {
-      return const TextSpan();
-    }
-
-    final altText = basicMatch.group(1) ?? '';
-    final urlStart = basicMatch.end;
-
-    // Now find the balanced closing parenthesis
-    int parenCount = 0;
-    int urlEnd = urlStart;
-
-    for (int i = urlStart; i < text.length; i++) {
-      final char = text[i];
-
-      if (char == '(') {
-        parenCount++;
-      } else if (char == ')') {
-        if (parenCount == 0) {
-          // This is the closing parenthesis of the image
-          urlEnd = i;
-          break;
-        } else {
-          parenCount--;
-        }
-      }
-    }
-
-    if (urlEnd == urlStart) {
-      // No closing parenthesis found
-      return const TextSpan();
-    }
-
-    final url = text.substring(urlStart, urlEnd).trim();
-
-    double? height;
-    double? width;
-    if (altText.isNotEmpty) {
-      var size = RegExp(r"^([0-9]+)?x?([0-9]+)?").firstMatch(altText.trim());
-      width = double.tryParse(size?[1]?.toString().trim() ?? 'a');
-      height = double.tryParse(size?[2]?.toString().trim() ?? 'a');
-    }
-
-    final Widget image;
-    if (config.imageBuilder != null) {
-      image = config.imageBuilder!(context, url);
-    } else {
-      image = SizedBox(
-        width: width,
-        height: height,
-        child: Image(
-          image: NetworkImage(url),
-          loadingBuilder: (
-            BuildContext context,
-            Widget child,
-            ImageChunkEvent? loadingProgress,
-          ) {
-            if (loadingProgress == null) {
-              return child;
-            }
-            return CustomImageLoading(
-              progress:
-                  loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                      : 1,
-            );
-          },
-          fit: BoxFit.fill,
-          errorBuilder: (context, error, stackTrace) {
-            return const CustomImageError();
-          },
-        ),
-      );
-    }
-    return WidgetSpan(alignment: PlaceholderAlignment.bottom, child: image);
-  }
-}
-
 /// Table component
 class TableMd extends BlockMd {
   @override
@@ -1890,249 +838,8 @@ class CodeBlockMd extends BlockMd {
     codes = codes.replaceAll(r"```", "").trim();
     bool closed = text.endsWith("```");
 
-    // Special handling for LaTeX code blocks
-    if (name.toLowerCase() == 'latex' || name.toLowerCase() == 'tex') {
-      return _buildLatexCodeBlock(context, codes, config);
-    }
-
     return config.codeBuilder?.call(context, name, codes, closed) ??
         CodeField(name: name, codes: codes);
-  }
-
-  // Build LaTeX code block with proper rendering
-  Widget _buildLatexCodeBlock(BuildContext context, String latexContent, GptMarkdownConfig config) {
-    final displayType = _LatexRenderingHelpers.getLatexDisplayType(latexContent);
-    final workaround = config.latexWorkaround ?? (String tex) => tex;
-    
-    return Material(
-      color: Theme.of(context).colorScheme.onInverseSurface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header row with language name and action buttons
-          Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8,
-                ),
-                child: Text(displayType.toUpperCase()),
-              ),
-              const Spacer(),
-              // Expand button
-              IconButton(
-                iconSize: 16,
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                onPressed: () => _LatexRenderingHelpers.showLatexExpandedView(
-                  context, 
-                  latexContent, 
-                  displayType,
-                  config.style ?? const TextStyle(),
-                  workaround: workaround,
-                ),
-                icon: Icon(
-                  Icons.open_in_full,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                ),
-                tooltip: 'Expand',
-              ),
-              // Share button
-              IconButton(
-                iconSize: 16,
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                onPressed: () async {
-                  try {
-                    if (latexContent.isEmpty) return;
-                    HapticFeedback.lightImpact();
-
-                    final timestamp = DateTime.now().millisecondsSinceEpoch;
-                    final fileName = 'latex_${displayType.toLowerCase().replaceAll(' ', '_')}_$timestamp.tex';
-
-                    final tempDir = await getTemporaryDirectory();
-                    final file = File('${tempDir.path}/$fileName');
-
-                    await file.writeAsString(latexContent);
-
-                    await Share.shareXFiles(
-                      [XFile(file.path)],
-                      text: '$displayType LaTeX file',
-                      subject: '$displayType LaTeX',
-                    );
-                  } catch (e) {
-                    debugPrint('LaTeX share failed: ${e.toString()}');
-                    // Fallback to text sharing
-                    try {
-                      await Share.share(
-                        latexContent,
-                        subject: '$displayType LaTeX',
-                      );
-                    } catch (fallbackError) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to share: ${fallbackError.toString()}'),
-                            backgroundColor: Colors.red[700],
-                            behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
-                icon: Icon(
-                  Icons.share_outlined,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                ),
-                tooltip: 'Share',
-              ),
-              // Copy button
-              IconButton(
-                iconSize: 16,
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: latexContent));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('LaTeX copied to clipboard'),
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-                icon: Icon(
-                  Icons.copy_outlined,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                ),
-                tooltip: 'Copy',
-              ),
-            ],
-          ),
-          const Divider(height: 1),
-          // Content area with rendered LaTeX
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.all(16),
-            child: (() {
-              try {
-                // Clean the LaTeX content to extract just math expressions
-                final cleanedLatex = _cleanLatexDocument(latexContent);
-                final processedLatex = workaround(cleanedLatex);
-                
-                // For display math content that was stripped of delimiters, add them back
-                String finalLatex = processedLatex;
-                if (!processedLatex.contains('\\[') && !processedLatex.contains('\\begin') && 
-                    !processedLatex.contains('\$\$') && processedLatex.trim().isNotEmpty) {
-                  // If content doesn't have math delimiters but contains math commands, wrap it
-                  if (processedLatex.contains('\\text{') || processedLatex.contains('\\rightarrow') || 
-                      processedLatex.contains('\\frac{') || processedLatex.contains('\\sqrt{')) {
-                    finalLatex = '\\[${processedLatex}\\]';
-                  }
-                }
-                
-                return Math.tex(
-                  finalLatex,
-                  textStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: config.style?.fontSize ?? 16.0,
-                  ),
-                  mathStyle: MathStyle.display,
-                  settings: const TexParserSettings(strict: Strict.ignore),
-                );
-              } catch (e) {
-                debugPrint('LaTeX rendering failed in code block: $e');
-                return Text(
-                  'LaTeX Error: $e',
-                  style: TextStyle(
-                    color: Colors.red[300],
-                    fontSize: 12,
-                    fontFamily: 'JetBrainsMono',
-                  ),
-                );
-              }
-            })(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Clean LaTeX document content to extract just mathematical expressions
-  String _cleanLatexDocument(String latexContent) {
-    String cleaned = latexContent.trim();
-    
-    // Remove document structure commands
-    final documentCommands = [
-      r'\\documentclass\{[^}]*\}',
-      r'\\usepackage\{[^}]*\}',
-      r'\\begin\{document\}',
-      r'\\end\{document\}',
-      r'\\title\{[^}]*\}',
-      r'\\author\{[^}]*\}',
-      r'\\date\{[^}]*\}',
-      r'\\maketitle',
-    ];
-    
-    for (final cmd in documentCommands) {
-      cleaned = cleaned.replaceAll(RegExp(cmd, multiLine: true), '');
-    }
-    
-    // Extract content from equation environments and combine them
-    final equations = <String>[];
-    
-    // Extract from \begin{equation}...\end{equation}
-    final equationRegex = RegExp(r'\\begin\{equation\}(.*?)\\end\{equation\}', multiLine: true, dotAll: true);
-    final equationMatches = equationRegex.allMatches(cleaned);
-    for (final match in equationMatches) {
-      final content = match.group(1)?.trim();
-      if (content != null && content.isNotEmpty) {
-        equations.add(content);
-      }
-    }
-    
-    // Extract from \begin{align}...\end{align}
-    final alignRegex = RegExp(r'\\begin\{align\}(.*?)\\end\{align\}', multiLine: true, dotAll: true);
-    final alignMatches = alignRegex.allMatches(cleaned);
-    for (final match in alignMatches) {
-      final content = match.group(1)?.trim();
-      if (content != null && content.isNotEmpty) {
-        equations.add(content);
-      }
-    }
-    
-    // Extract from other math environments
-    final mathEnvs = ['gather', 'multline', 'alignat', 'flalign'];
-    for (final env in mathEnvs) {
-      final envRegex = RegExp(r'\\begin\{' + env + r'\}(.*?)\\end\{' + env + r'\}', multiLine: true, dotAll: true);
-      final envMatches = envRegex.allMatches(cleaned);
-      for (final match in envMatches) {
-        final content = match.group(1)?.trim();
-        if (content != null && content.isNotEmpty) {
-          equations.add(content);
-        }
-      }
-    }
-    
-    // If we found equations, combine them with line breaks
-    if (equations.isNotEmpty) {
-      return equations.join('\\\\\n');
-    }
-    
-    // If no specific environments found, remove any remaining unwanted commands and return cleaned content
-    cleaned = cleaned
-        .replaceAll(RegExp(r'\\begin\{[^}]*\}'), '')
-        .replaceAll(RegExp(r'\\end\{[^}]*\}'), '')
-        .replaceAll(RegExp(r'\n\s*\n'), '\\\\\n') // Replace double newlines with math line breaks
-        .trim();
-    
-    return cleaned.isEmpty ? latexContent : cleaned; // Fallback to original if cleaning failed
   }
 }
 
@@ -2163,6 +870,369 @@ class UnderLineMd extends InlineMd {
       ),
       style: conf.style,
     );
+  }
+}
+
+class LatexMathMultiLine extends BlockMd {
+  @override
+  String get expString => (r"\ *\\\[((?:.)*?)\\\]|(\ *\\begin.*?\\end{.*?})|(?<!\\)\$\$((?:.)*?)\$\$(?!\\)");
+  @override
+  RegExp get exp => RegExp(expString, dotAll: true, multiLine: true);
+
+  @override
+  Widget build(
+    BuildContext context,
+    String text,
+    final GptMarkdownConfig config,
+  ) {
+    var p0 = exp.firstMatch(text.trim());
+    String mathText = p0?[1] ?? p0?[2] ?? p0?[3] ?? '';
+    var workaround = config.latexWorkaround ?? (String tex) => tex;
+
+    // If custom latexBuilder is provided, use it
+    if (config.latexBuilder != null) {
+      return config.latexBuilder!(
+        context,
+        workaround(mathText),
+        config.style ?? const TextStyle(),
+        false,
+      );
+    }
+
+    // Simple native LaTeX rendering
+    try {
+      final processedMath = workaround(mathText);
+      return Math.tex(
+        processedMath,
+        textStyle: TextStyle(
+          color: config.style?.color ?? Colors.white,
+          fontSize: config.style?.fontSize ?? 16.0,
+        ),
+        mathStyle: MathStyle.display,
+        settings: const TexParserSettings(strict: Strict.ignore),
+      );
+    } catch (e) {
+      return Text(
+        'LaTeX Error: $e',
+        style: TextStyle(color: Colors.red[300], fontSize: 12),
+      );
+    }
+  }
+}
+
+/// Inline LaTeX component
+class LatexMath extends InlineMd {
+  @override
+  RegExp get exp => RegExp(
+    [
+      r"\\\((.*?)\\\)",
+      r"(?<!\\)\$((?:\\.|[^$])*?)\$(?!\\)",
+    ].join("|"),
+    dotAll: true,
+  );
+
+  @override
+  InlineSpan span(
+    BuildContext context,
+    String text,
+    final GptMarkdownConfig config,
+  ) {
+    var p0 = exp.firstMatch(text.trim());
+    String mathText = p0?[1]?.toString() ?? p0?[2]?.toString() ?? "";
+    var workaround = config.latexWorkaround ?? (String tex) => tex;
+
+    // If custom latexBuilder is provided, use it
+    if (config.latexBuilder != null) {
+      return WidgetSpan(
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        child: config.latexBuilder!(
+          context,
+          workaround(mathText),
+          config.style ?? const TextStyle(),
+          true,
+        ),
+      );
+    }
+
+    // Simple inline LaTeX rendering
+    try {
+      final processedMath = workaround(mathText);
+      final result = Math.tex(
+        processedMath,
+        textStyle: TextStyle(
+          color: config.style?.color ?? Colors.white,
+          fontSize: config.style?.fontSize ?? 16.0,
+        ),
+        mathStyle: MathStyle.text,
+        settings: const TexParserSettings(strict: Strict.ignore),
+      );
+      
+      return WidgetSpan(
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        child: result,
+      );
+    } catch (e) {
+      return WidgetSpan(
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        child: Text(
+          'LaTeX Error',
+          style: TextStyle(color: Colors.red[300], fontSize: 12),
+        ),
+      );
+    }
+  }
+}
+
+/// source text component
+class SourceTag extends InlineMd {
+  @override
+  RegExp get exp => RegExp(r"(?:【.*?)?\[(\d+?)\]");
+
+  @override
+  InlineSpan span(
+    BuildContext context,
+    String text,
+    final GptMarkdownConfig config,
+  ) {
+    var match = exp.firstMatch(text.trim());
+    var content = match?[1];
+    if (content == null) {
+      return const TextSpan();
+    }
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child:
+            config.sourceTagBuilder?.call(
+              context,
+              content,
+              const TextStyle(),
+            ) ??
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: Material(
+                color: Theme.of(context).colorScheme.onInverseSurface,
+                shape: const OvalBorder(),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    content,
+                    textDirection: config.textDirection,
+                  ),
+                ),
+              ),
+            ),
+      ),
+    );
+  }
+}
+
+/// Link text component
+class ATagMd extends InlineMd {
+  @override
+  RegExp get exp => RegExp(r"(?<!\!)\[.*\]\([^\s]*\)");
+
+  @override
+  InlineSpan span(
+    BuildContext context,
+    String text,
+    final GptMarkdownConfig config,
+  ) {
+    var bracketCount = 0;
+    var start = 1;
+    var end = 0;
+    for (var i = 0; i < text.length; i++) {
+      if (text[i] == '[') {
+        bracketCount++;
+      } else if (text[i] == ']') {
+        bracketCount--;
+        if (bracketCount == 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+
+    if (text[end + 1] != '(') {
+      return const TextSpan();
+    }
+
+    final linkText = text.substring(start, end);
+    final urlStart = end + 2;
+
+    // Now find the balanced closing parenthesis
+    int parenCount = 0;
+    int urlEnd = urlStart;
+
+    for (int i = urlStart; i < text.length; i++) {
+      final char = text[i];
+
+      if (char == '(') {
+        parenCount++;
+      } else if (char == ')') {
+        if (parenCount == 0) {
+          // This is the closing parenthesis of the link
+          urlEnd = i;
+          break;
+        } else {
+          parenCount--;
+        }
+      }
+    }
+
+    if (urlEnd == urlStart) {
+      // No closing parenthesis found
+      return const TextSpan();
+    }
+
+    final url = text.substring(urlStart, urlEnd).trim();
+    var builder = config.linkBuilder;
+    var ending = text.substring(urlEnd + 1);
+
+    var endingSpans = MarkdownComponent.generate(
+      context,
+      ending,
+      config,
+      false,
+    );
+    var theme = GptMarkdownTheme.of(context);
+    var linkTextSpan = TextSpan(
+      children: MarkdownComponent.generate(context, linkText, config, false),
+      style: config.style?.copyWith(
+        color: theme.linkColor,
+        decorationColor: theme.linkColor,
+      ),
+    );
+
+    // Use custom builder if provided
+    WidgetSpan? child;
+    if (builder != null) {
+      child = WidgetSpan(
+        child: GestureDetector(
+          onTap: () => config.onLinkTap?.call(url, linkText),
+          child: builder(
+            context,
+            linkTextSpan,
+            url,
+            config.style ?? const TextStyle(),
+          ),
+        ),
+      );
+    }
+
+    // Default rendering
+    child ??= WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: LinkButton(
+        hoverColor: theme.linkHoverColor,
+        color: theme.linkColor,
+        onPressed: () {
+          config.onLinkTap?.call(url, linkText);
+        },
+        text: linkText,
+        config: config,
+        child: config.getRich(linkTextSpan),
+      ),
+    );
+    var textSpan = TextSpan(children: [child, ...endingSpans]);
+    return textSpan;
+  }
+}
+
+/// Image component
+class ImageMd extends InlineMd {
+  @override
+  RegExp get exp => RegExp(r"\!\[[^\[\]]*\]\([^\s]*\)");
+
+  @override
+  InlineSpan span(
+    BuildContext context,
+    String text,
+    final GptMarkdownConfig config,
+  ) {
+    // First try to find the basic pattern
+    final basicMatch = RegExp(r'\!\[([^\[\]]*)\]\(').firstMatch(text.trim());
+    if (basicMatch == null) {
+      return const TextSpan();
+    }
+
+    final altText = basicMatch.group(1) ?? '';
+    final urlStart = basicMatch.end;
+
+    // Now find the balanced closing parenthesis
+    int parenCount = 0;
+    int urlEnd = urlStart;
+
+    for (int i = urlStart; i < text.length; i++) {
+      final char = text[i];
+
+      if (char == '(') {
+        parenCount++;
+      } else if (char == ')') {
+        if (parenCount == 0) {
+          // This is the closing parenthesis of the image
+          urlEnd = i;
+          break;
+        } else {
+          parenCount--;
+        }
+      }
+    }
+
+    if (urlEnd == urlStart) {
+      // No closing parenthesis found
+      return const TextSpan();
+    }
+
+    final url = text.substring(urlStart, urlEnd).trim();
+
+    double? height;
+    double? width;
+    if (altText.isNotEmpty) {
+      var size = RegExp(r"^([0-9]+)?x?([0-9]+)?").firstMatch(altText.trim());
+      width = double.tryParse(size?[1]?.toString().trim() ?? 'a');
+      height = double.tryParse(size?[2]?.toString().trim() ?? 'a');
+    }
+
+    final Widget image;
+    if (config.imageBuilder != null) {
+      image = config.imageBuilder!(context, url);
+    } else {
+      image = SizedBox(
+        width: width,
+        height: height,
+        child: Image(
+          image: NetworkImage(url),
+          loadingBuilder: (
+            BuildContext context,
+            Widget child,
+            ImageChunkEvent? loadingProgress,
+          ) {
+            if (loadingProgress == null) {
+              return child;
+            }
+            return CustomImageLoading(
+              progress:
+                  loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : 1,
+            );
+          },
+          fit: BoxFit.fill,
+          errorBuilder: (context, error, stackTrace) {
+            return const CustomImageError();
+          },
+        ),
+      );
+    }
+    return WidgetSpan(alignment: PlaceholderAlignment.bottom, child: image);
   }
 }
 
