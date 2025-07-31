@@ -1862,113 +1862,223 @@ class CodeBlockMd extends BlockMd {
     final displayType = _LatexRenderingHelpers.getLatexDisplayType(latexContent);
     final workaround = config.latexWorkaround ?? (String tex) => tex;
     
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-      ),
+    return Material(
+      color: Theme.of(context).colorScheme.onInverseSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header with badge and buttons
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1A1A1A),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+          // Header row with language name and action buttons
+          Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8,
+                ),
+                child: Text(displayType.toUpperCase()),
               ),
-            ),
-            child: Row(
-              children: [
-                // LaTeX badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A2A),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    displayType.toUpperCase(),
-                    style: const TextStyle(
-                      color: Color(0xFF8A8A8A),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+              const Spacer(),
+              // Expand button
+              IconButton(
+                iconSize: 16,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: () => _LatexRenderingHelpers.showLatexExpandedView(
+                  context, 
+                  latexContent, 
+                  displayType,
+                  config.style ?? const TextStyle(),
+                  workaround: workaround,
                 ),
-                const Spacer(),
-                // Expand button
-                InkWell(
-                  onTap: () => _LatexRenderingHelpers.showLatexExpandedView(
-                    context, 
-                    latexContent, 
-                    displayType,
-                    config.style ?? const TextStyle(),
-                    workaround: workaround,
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    child: const Icon(
-                      Icons.open_in_full,
-                      color: Color(0xFFA0A0A0),
-                      size: 16,
-                    ),
-                  ),
+                icon: Icon(
+                  Icons.open_in_full,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
-                const SizedBox(width: 8),
-                // Share button
-                _LatexShareButton(latexContent: latexContent, displayType: displayType),
-                const SizedBox(width: 8),
-                // Copy button  
-                _LatexCopyButton(latexContent: latexContent),
-              ],
-            ),
+                tooltip: 'Expand',
+              ),
+              // Share button
+              IconButton(
+                iconSize: 16,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: () async {
+                  try {
+                    if (latexContent.isEmpty) return;
+                    HapticFeedback.lightImpact();
+
+                    final timestamp = DateTime.now().millisecondsSinceEpoch;
+                    final fileName = 'latex_${displayType.toLowerCase().replaceAll(' ', '_')}_$timestamp.tex';
+
+                    final tempDir = await getTemporaryDirectory();
+                    final file = File('${tempDir.path}/$fileName');
+
+                    await file.writeAsString(latexContent);
+
+                    await Share.shareXFiles(
+                      [XFile(file.path)],
+                      text: '$displayType LaTeX file',
+                      subject: '$displayType LaTeX',
+                    );
+                  } catch (e) {
+                    debugPrint('LaTeX share failed: ${e.toString()}');
+                    // Fallback to text sharing
+                    try {
+                      await Share.share(
+                        latexContent,
+                        subject: '$displayType LaTeX',
+                      );
+                    } catch (fallbackError) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to share: ${fallbackError.toString()}'),
+                            backgroundColor: Colors.red[700],
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                icon: Icon(
+                  Icons.share_outlined,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                ),
+                tooltip: 'Share',
+              ),
+              // Copy button
+              IconButton(
+                iconSize: 16,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: latexContent));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('LaTeX copied to clipboard'),
+                        duration: const Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                },
+                icon: Icon(
+                  Icons.copy_outlined,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                ),
+                tooltip: 'Copy',
+              ),
+            ],
           ),
-          // Content area - rendered LaTeX
-          Container(
-            width: double.infinity,
+          const Divider(height: 1),
+          // Content area with rendered LaTeX
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1A1A1A),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-              ),
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: (() {
-                try {
-                  final processedLatex = workaround(latexContent);
-                  return Math.tex(
-                    processedLatex,
-                    textStyle: TextStyle(
-                      color: config.style?.color ?? Colors.white,
-                      fontSize: config.style?.fontSize ?? 16.0,
-                    ),
-                    mathStyle: MathStyle.display,
-                    settings: const TexParserSettings(strict: Strict.ignore),
-                  );
-                } catch (e) {
-                  debugPrint('LaTeX rendering failed in code block: $e');
-                  return Text(
-                    'LaTeX Error: $e',
-                    style: TextStyle(color: Colors.red[300], fontSize: 12),
-                  );
-                }
-              })(),
-            ),
+            child: (() {
+              try {
+                // Clean the LaTeX content to extract just math expressions
+                final cleanedLatex = _cleanLatexDocument(latexContent);
+                final processedLatex = workaround(cleanedLatex);
+                return Math.tex(
+                  processedLatex,
+                  textStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: config.style?.fontSize ?? 16.0,
+                  ),
+                  mathStyle: MathStyle.display,
+                  settings: const TexParserSettings(strict: Strict.ignore),
+                );
+              } catch (e) {
+                debugPrint('LaTeX rendering failed in code block: $e');
+                return Text(
+                  'LaTeX Error: $e',
+                  style: TextStyle(
+                    color: Colors.red[300],
+                    fontSize: 12,
+                    fontFamily: 'JetBrainsMono',
+                  ),
+                );
+              }
+            })(),
           ),
         ],
       ),
     );
+  }
+
+  // Clean LaTeX document content to extract just mathematical expressions
+  String _cleanLatexDocument(String latexContent) {
+    String cleaned = latexContent.trim();
+    
+    // Remove document structure commands
+    final documentCommands = [
+      r'\\documentclass\{[^}]*\}',
+      r'\\usepackage\{[^}]*\}',
+      r'\\begin\{document\}',
+      r'\\end\{document\}',
+      r'\\title\{[^}]*\}',
+      r'\\author\{[^}]*\}',
+      r'\\date\{[^}]*\}',
+      r'\\maketitle',
+    ];
+    
+    for (final cmd in documentCommands) {
+      cleaned = cleaned.replaceAll(RegExp(cmd, multiLine: true), '');
+    }
+    
+    // Extract content from equation environments and combine them
+    final equations = <String>[];
+    
+    // Extract from \begin{equation}...\end{equation}
+    final equationRegex = RegExp(r'\\begin\{equation\}(.*?)\\end\{equation\}', multiLine: true, dotAll: true);
+    final equationMatches = equationRegex.allMatches(cleaned);
+    for (final match in equationMatches) {
+      final content = match.group(1)?.trim();
+      if (content != null && content.isNotEmpty) {
+        equations.add(content);
+      }
+    }
+    
+    // Extract from \begin{align}...\end{align}
+    final alignRegex = RegExp(r'\\begin\{align\}(.*?)\\end\{align\}', multiLine: true, dotAll: true);
+    final alignMatches = alignRegex.allMatches(cleaned);
+    for (final match in alignMatches) {
+      final content = match.group(1)?.trim();
+      if (content != null && content.isNotEmpty) {
+        equations.add(content);
+      }
+    }
+    
+    // Extract from other math environments
+    final mathEnvs = ['gather', 'multline', 'alignat', 'flalign'];
+    for (final env in mathEnvs) {
+      final envRegex = RegExp(r'\\begin\{' + env + r'\}(.*?)\\end\{' + env + r'\}', multiLine: true, dotAll: true);
+      final envMatches = envRegex.allMatches(cleaned);
+      for (final match in envMatches) {
+        final content = match.group(1)?.trim();
+        if (content != null && content.isNotEmpty) {
+          equations.add(content);
+        }
+      }
+    }
+    
+    // If we found equations, combine them with line breaks
+    if (equations.isNotEmpty) {
+      return equations.join('\\\\\n');
+    }
+    
+    // If no specific environments found, remove any remaining unwanted commands and return cleaned content
+    cleaned = cleaned
+        .replaceAll(RegExp(r'\\begin\{[^}]*\}'), '')
+        .replaceAll(RegExp(r'\\end\{[^}]*\}'), '')
+        .replaceAll(RegExp(r'\n\s*\n'), '\\\\\n') // Replace double newlines with math line breaks
+        .trim();
+    
+    return cleaned.isEmpty ? latexContent : cleaned; // Fallback to original if cleaning failed
   }
 }
 
