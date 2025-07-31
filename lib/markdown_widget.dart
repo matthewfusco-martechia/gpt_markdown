@@ -202,73 +202,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
           ),
         );
       },
-      // Custom code block styling
-      codeBuilder: (context, language, code, closed) {
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: widget.iconFillColor.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: widget.iconBorderColor.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with language
-              if (language.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: widget.iconFillColor.withOpacity(0.1),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(8),
-                      topRight: Radius.circular(8),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: widget.iconFillColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          language.toUpperCase(),
-                          style: TextStyle(
-                            color: widget.mdcolor.withOpacity(0.7),
-                            fontSize: widget.fontSize * 0.75,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              // Code content
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Text(
-                    code,
-                    style: TextStyle(
-                      color: widget.mdcolor,
-                      fontFamily: 'Courier New',
-                      fontSize: widget.fontSize * 0.9,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      // Custom code block styling removed - now uses enhanced CodeField
       // Custom link styling
       linkBuilder: (context, label, url, style) {
         return Container(
