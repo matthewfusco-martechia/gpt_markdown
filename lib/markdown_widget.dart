@@ -305,37 +305,40 @@ class _ThinkBlockState extends State<ThinkBlock> with TickerProviderStateMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header that matches Cursor exactly
+          // Header that matches the desired design
           InkWell(
             onTap: _toggle,
             borderRadius: BorderRadius.circular(6),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF2A2A2A), // Cursor's gray header background
+                color: const Color(0xFF0F172A), // Dark blue background
                 borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: const Color(0xFF1E293B),
+                  width: 1,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Brain icon matching Cursor's style
+                  // Gear icon matching the design
                   Icon(
-                    Icons.psychology_outlined,
-                    color: const Color(0xFF9CA3AF), // Cursor's gray icon color
+                    Icons.settings,
+                    color: const Color(0xFF3B82F6), // Blue icon color
                     size: 16,
                   ),
                   const SizedBox(width: 8),
-                  // Text matching Cursor's exact styling
+                  // "Think Block" text
                   Text(
-                    'Thought for 1 second',
+                    'Think Block',
                     style: TextStyle(
-                      color: const Color(0xFF9CA3AF), // Cursor's gray text color
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: 0.0,
+                      color: const Color(0xFFE2E8F0), // Light text color
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const Spacer(),
                   // Chevron icon that rotates on expand/collapse
                   AnimatedBuilder(
                     animation: _rotationAnimation,
@@ -343,9 +346,9 @@ class _ThinkBlockState extends State<ThinkBlock> with TickerProviderStateMixin {
                       return Transform.rotate(
                         angle: _rotationAnimation.value * 1.5708, // 90 degrees in radians
                         child: Icon(
-                          Icons.chevron_right,
-                          color: const Color(0xFF9CA3AF),
-                          size: 16,
+                          Icons.keyboard_arrow_down,
+                          color: const Color(0xFF64748B),
+                          size: 20,
                         ),
                       );
                     },
