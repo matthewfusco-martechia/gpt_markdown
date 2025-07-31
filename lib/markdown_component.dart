@@ -781,7 +781,7 @@ class _LatexRenderingHelpers {
   }
 
   // Show expanded view for LaTeX content
-  static void showLatexExpandedView(BuildContext context, String latexData, String displayType, TextStyle style) {
+  static void showLatexExpandedView(BuildContext context, String latexData, String displayType, TextStyle style, {String Function(String)? workaround}) {
     HapticFeedback.lightImpact();
 
     showModalBottomSheet(
@@ -870,7 +870,7 @@ class _LatexRenderingHelpers {
                       ),
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        child: buildLatexContent(latexData, style, isExpanded: true),
+                        child: buildLatexContent(latexData, style, isExpanded: true, workaround: workaround),
                       ),
                     ),
                   ),
@@ -884,19 +884,19 @@ class _LatexRenderingHelpers {
   }
 
   // Build LaTeX content with proper rendering
-  static Widget buildLatexContent(String content, TextStyle style, {bool isExpanded = false}) {
+  static Widget buildLatexContent(String content, TextStyle style, {bool isExpanded = false, String Function(String)? workaround}) {
     try {
-      // Clean the LaTeX content more carefully
-      String cleanContent = removeLatexDelimiters(content.trim());
+      // Apply workaround function if provided, otherwise use content as-is
+      String processedContent = workaround != null ? workaround(content) : content;
       
-      // Skip if content is empty after cleaning
-      if (cleanContent.isEmpty) {
+      // Skip if content is empty
+      if (processedContent.trim().isEmpty) {
         return const Text('Empty LaTeX content', style: TextStyle(color: Colors.grey));
       }
       
-      // Try to render the LaTeX
+      // Try to render the LaTeX directly without aggressive delimiter removal
       return Math.tex(
-        cleanContent,
+        processedContent,
         textStyle: TextStyle(
           color: style.color ?? Colors.white,
           fontSize: isExpanded ? (style.fontSize ?? 16.0) * 1.3 : (style.fontSize ?? 16.0),
@@ -1079,6 +1079,7 @@ class LatexMathMultiLine extends BlockMd {
                     mathText, 
                     displayType,
                     config.style ?? const TextStyle(),
+                    workaround: workaround,
                   ),
                   borderRadius: BorderRadius.circular(6),
                   child: Container(
@@ -1115,6 +1116,7 @@ class LatexMathMultiLine extends BlockMd {
               child: _LatexRenderingHelpers.buildLatexContent(
                 mathText,
                 config.style ?? const TextStyle(),
+                workaround: workaround,
               ),
             ),
           ),
@@ -1161,14 +1163,14 @@ class LatexMath extends InlineMd {
     }
 
     // Use simple inline LaTeX rendering (no complex container for inline math)
-    final cleanContent = _LatexRenderingHelpers.removeLatexDelimiters(mathText);
     
     return WidgetSpan(
       alignment: PlaceholderAlignment.baseline,
       baseline: TextBaseline.alphabetic,
       child: _LatexRenderingHelpers.buildLatexContent(
-        cleanContent,
+        mathText,
         config.style ?? const TextStyle(),
+        workaround: workaround,
       ),
     );
   }
