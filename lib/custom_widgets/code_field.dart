@@ -1,129 +1,290 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
-/// A widget that displays code with syntax highlighting and multiple action buttons.
-///
-/// The [CodeField] widget takes a [name] parameter which is displayed as a label
-/// above the code block, and a [codes] parameter containing the actual code text
-/// to display.
-///
-/// Features:
-/// - Displays code in a Material container with rounded corners
-/// - Shows the code language/name as a label
-/// - Provides expand, share, and copy buttons
-/// - Visual feedback when code is copied
-/// - Enhanced syntax highlighting
-/// - Themed colors that adapt to light/dark mode
-class CodeField extends StatefulWidget {
-  const CodeField({super.key, required this.name, required this.codes});
-  final String name;
-  final String codes;
+/// A stateful copy button widget that handles copy state properly
+class _CopyButton extends StatefulWidget {
+  final String code;
+
+  const _CopyButton({Key? key, required this.code}) : super(key: key);
 
   @override
-  State<CodeField> createState() => _CodeFieldState();
+  State<_CopyButton> createState() => _CopyButtonState();
 }
 
-class _CodeFieldState extends State<CodeField> {
-  bool _copied = false;
-  bool _isExpanded = false;
+class _CopyButtonState extends State<_CopyButton> {
+  bool isCopied = false;
+
+  void handleCopy() async {
+    final String codeToCopy = widget.code;
+    try {
+      if (codeToCopy.isNotEmpty) {
+        HapticFeedback.lightImpact();
+        await Clipboard.setData(ClipboardData(text: codeToCopy));
+        setState(() {
+          isCopied = true;
+        });
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              isCopied = false;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy: ${e.toString()}'),
+            backgroundColor: Colors.red[700],
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.onInverseSurface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return InkWell(
+      onTap: handleCopy,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          isCopied ? Icons.check : Icons.copy_outlined,
+          color: isCopied ? const Color(0xFF4CAF50) : const Color(0xFFA0A0A0),
+          size: 18,
+        ),
+      ),
+    );
+  }
+}
+
+/// A share button widget for code blocks
+class _ShareButton extends StatelessWidget {
+  final String code;
+  final String language;
+
+  const _ShareButton({Key? key, required this.code, required this.language})
+      : super(key: key);
+
+  // Language to file extension mapping
+  static const Map<String, String> _languageExtensions = {
+    'javascript': 'js',
+    'js': 'js',
+    'jsx': 'jsx',
+    'typescript': 'ts',
+    'ts': 'ts',
+    'tsx': 'tsx',
+    'python': 'py',
+    'py': 'py',
+    'java': 'java',
+    'kotlin': 'kt',
+    'kt': 'kt',
+    'swift': 'swift',
+    'dart': 'dart',
+    'c': 'c',
+    'cpp': 'cpp',
+    'c++': 'cpp',
+    'csharp': 'cs',
+    'cs': 'cs',
+    'c#': 'cs',
+    'go': 'go',
+    'rust': 'rs',
+    'rs': 'rs',
+    'ruby': 'rb',
+    'rb': 'rb',
+    'php': 'php',
+    'html': 'html',
+    'css': 'css',
+    'json': 'json',
+    'yaml': 'yaml',
+    'yml': 'yml',
+    'sql': 'sql',
+    'bash': 'sh',
+    'sh': 'sh',
+    'shell': 'sh',
+    'plaintext': 'txt',
+    'text': 'txt',
+  };
+
+  void handleShare(BuildContext context) async {
+    try {
+      if (code.isEmpty) return;
+      HapticFeedback.lightImpact();
+
+      // Show immediate user feedback
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text('Preparing file for sharing...'),
+              ],
+            ),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      // Use simpler filename for better performance
+      final ext = _languageExtensions[language.toLowerCase()] ?? 'txt';
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '${language.toLowerCase()}_$timestamp.$ext';
+
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/$fileName');
+
+      await file.writeAsString(code);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '${language.toUpperCase()} code file',
+        subject: '${language.toUpperCase()} Code',
+      );
+    } catch (e) {
+      debugPrint('Share failed: ${e.toString()}');
+      // Fallback to text sharing
+      await Share.share(
+        'Code (${language.toUpperCase()}):\n\n$code',
+        subject: '${language.toUpperCase()} Code',
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => handleShare(context),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: const Icon(
+          Icons.share_outlined,
+          color: Color(0xFFA0A0A0),
+          size: 18,
+        ),
+      ),
+    );
+  }
+}
+
+class CodeField extends StatelessWidget {
+  const CodeField({
+    Key? key,
+    required this.name,
+    required this.codes,
+    this.fontSize = 14.0,
+  }) : super(key: key);
+
+  final String name;
+  final String codes;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Enhanced header with multiple action buttons
+          // Header with language badge and buttons
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey[800]?.withOpacity(0.3),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
             ),
             child: Row(
               children: [
-                Text(
-                  widget.name.toUpperCase(),
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                // Language badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    (name.isEmpty ? 'CODE' : name).toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF8A8A8A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
                 const Spacer(),
                 // Expand button
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _isExpanded = !_isExpanded;
-                    });
-                  },
-                  icon: Icon(
-                    _isExpanded ? Icons.fullscreen_exit : Icons.fullscreen,
-                    size: 18,
-                    color: Colors.grey[400],
+                InkWell(
+                  onTap: () => _showExpandedView(context),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.open_in_full,
+                      color: Color(0xFFA0A0A0),
+                      size: 18,
+                    ),
                   ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 ),
+                const SizedBox(width: 12),
                 // Share button
-                IconButton(
-                  onPressed: () {
-                    // TODO: Implement share functionality
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Share functionality coming soon!'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  icon: Icon(
-                    Icons.share,
-                    size: 18,
-                    color: Colors.grey[400],
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                ),
+                _ShareButton(code: codes, language: name),
+                const SizedBox(width: 12),
                 // Copy button
-                IconButton(
-                  onPressed: () async {
-                    await Clipboard.setData(
-                      ClipboardData(text: widget.codes),
-                    ).then((value) {
-                      setState(() {
-                        _copied = true;
-                      });
-                    });
-                    await Future.delayed(const Duration(seconds: 2));
-                    setState(() {
-                      _copied = false;
-                    });
-                  },
-                  icon: Icon(
-                    (_copied) ? Icons.check : Icons.copy,
-                    size: 18,
-                    color: _copied ? Colors.green[400] : Colors.grey[400],
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                ),
+                _CopyButton(code: codes),
               ],
             ),
           ),
-          // Code content with syntax highlighting
+          // Separator
           Container(
-            constraints: _isExpanded 
-              ? null 
-              : const BoxConstraints(maxHeight: 400),
+            height: 1,
+            color: const Color(0xFF2A2A2A),
+          ),
+          // Code content
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+            ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: _buildSyntaxHighlightedCode(widget.codes),
+              child: HighlightView(
+                codes,
+                language: name.toLowerCase(),
+                theme: _getSyntaxTheme(),
+                textStyle: TextStyle(
+                  fontFamily: 'JetBrainsMono',
+                  fontSize: fontSize,
+                  height: 1.6,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -132,82 +293,145 @@ class _CodeFieldState extends State<CodeField> {
     );
   }
 
-  Widget _buildSyntaxHighlightedCode(String code) {
-    // Enhanced syntax highlighting
-    final lines = code.split('\n');
-    return SelectableText.rich(
-      TextSpan(
-        children: lines.asMap().entries.map((entry) {
-          int index = entry.key;
-          String line = entry.value;
-          
-          return TextSpan(
-            children: [
-              _highlightLine(line),
-              if (index < lines.length - 1) const TextSpan(text: '\n'),
-            ],
-          );
-        }).toList(),
+  void _showExpandedView(BuildContext context) {
+    HapticFeedback.lightImpact();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF141414),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      style: TextStyle(
-        fontFamily: 'JetBrainsMono',
-        package: "gpt_markdown",
-        fontSize: 14,
-        height: 1.5,
-      ),
+      builder: (BuildContext modalContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, controller) {
+            return Column(
+              children: [
+                // Modal Header
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Language badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A2A2A),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          (name.isEmpty ? 'CODE' : name).toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF8A8A8A),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Close button
+                      InkWell(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.of(modalContext).pop();
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.close,
+                            color: Color(0xFFA0A0A0),
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Share button
+                      _ShareButton(code: codes, language: name),
+                      const SizedBox(width: 12),
+                      // Copy button
+                      _CopyButton(code: codes),
+                    ],
+                  ),
+                ),
+                Container(height: 1, color: const Color(0xFF2A2A2A)),
+                // Modal Content
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(16),
+                        bottomRight: Radius.circular(16),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      controller: controller,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: HighlightView(
+                          codes,
+                          language: name.toLowerCase(),
+                          theme: _getSyntaxTheme(),
+                          textStyle: TextStyle(
+                            fontFamily: 'JetBrainsMono',
+                            fontSize: fontSize,
+                            height: 1.6,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
-  TextSpan _highlightLine(String line) {
-    // Simple syntax highlighting for Python
-    final spans = <TextSpan>[];
-    final keywords = ['import', 'def', 'class', 'if', 'else', 'elif', 'for', 'while', 'try', 'except', 'with', 'as', 'return'];
-    final words = line.split(' ');
-    
-    for (int i = 0; i < words.length; i++) {
-      final word = words[i];
-      Color? color;
-      FontWeight? fontWeight;
-      FontStyle? fontStyle;
-      
-      // Keywords
-      if (keywords.contains(word.replaceAll(RegExp(r'[^\w]'), ''))) {
-        color = Colors.purple[300];
-        fontWeight = FontWeight.bold;
-      }
-      // Strings
-      else if (word.contains("'") || word.contains('"')) {
-        color = Colors.green[300];
-      }
-      // Comments
-      else if (word.startsWith('#')) {
-        color = Colors.grey[500];
-        fontStyle = FontStyle.italic;
-      }
-      // Function calls
-      else if (word.contains('(')) {
-        color = Colors.blue[300];
-      }
-      // Constants/variables in caps
-      else if (word.toUpperCase() == word && word.length > 1 && RegExp(r'^[A-Z_]+$').hasMatch(word)) {
-        color = Colors.cyan[300];
-        fontWeight = FontWeight.w600;
-      }
-      // Default text color
-      else {
-        color = Colors.grey[200];
-      }
-      
-      spans.add(TextSpan(
-        text: word + (i < words.length - 1 ? ' ' : ''),
-        style: TextStyle(
-          color: color,
-          fontWeight: fontWeight,
-          fontStyle: fontStyle,
-        ),
-      ));
-    }
-    
-    return TextSpan(children: spans);
+  Map<String, TextStyle> _getSyntaxTheme() {
+    return {
+      'root': const TextStyle(
+        backgroundColor: Color(0xFF1A1A1A),
+        color: Colors.white,
+      ),
+      'keyword': const TextStyle(color: Color(0xFFC678DD)),
+      'built_in': const TextStyle(color: Color(0xFF61AFEF)),
+      'class': const TextStyle(color: Color(0xFF61AFEF)),
+      'string': const TextStyle(color: Color(0xFF98C379)),
+      'number': const TextStyle(color: Color(0xFFD19A66)),
+      'comment': const TextStyle(
+        color: Color(0xFF5C6370),
+        fontStyle: FontStyle.italic,
+      ),
+      'title': const TextStyle(color: Color(0xFFE5C07B)),
+      'meta': const TextStyle(color: Color(0xFFE5C07B)),
+      'tag': const TextStyle(color: Color(0xFFE06C75)),
+      'attr': const TextStyle(color: Color(0xFFD19A66)),
+      'attr-name': const TextStyle(color: Color(0xFFD19A66)),
+      'type': const TextStyle(color: Color(0xFF61AFEF)),
+      'function': const TextStyle(color: Color(0xFF61AFEF)),
+      'variable': const TextStyle(color: Color(0xFFE06C75)),
+    };
   }
 }
