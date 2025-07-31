@@ -1048,6 +1048,13 @@ class LatexMathMultiLine extends BlockMd {
     String mathText = p0?[1] ?? p0?[2] ?? p0?[3] ?? '';
     var workaround = config.latexWorkaround ?? (String tex) => tex;
 
+    // Check if this LaTeX math is likely a duplicate of content in a code block
+    // This happens when users include both ```latex and \[ \] for the same formula
+    if (_isDuplicateLatexContent(context, mathText)) {
+      // Return empty widget to skip rendering duplicate content
+      return const SizedBox.shrink();
+    }
+
     // If custom latexBuilder is provided, use it
     if (config.latexBuilder != null) {
       return config.latexBuilder!(
@@ -1292,6 +1299,41 @@ class LatexMathMultiLine extends BlockMd {
         ),
       );
     }
+  }
+  
+  // Helper method to detect if LaTeX math content is likely a duplicate of code block content
+  bool _isDuplicateLatexContent(BuildContext context, String mathText) {
+    // Conservative heuristic: only skip very simple mathematical expressions
+    // that are commonly duplicated in both ```latex blocks and \[ \] format
+    
+    String cleanMath = mathText.trim();
+    
+    // Skip if it's empty
+    if (cleanMath.isEmpty) return false;
+    
+    // Don't skip complex LaTeX (likely legitimate standalone math)
+    if (cleanMath.contains('\\begin{') || 
+        cleanMath.contains('\\end{') ||
+        cleanMath.contains('\\align') ||
+        cleanMath.contains('\\equation') ||
+        cleanMath.contains('\\matrix')) {
+      return false;
+    }
+    
+    // Don't skip very long expressions (likely legitimate)
+    if (cleanMath.length > 150) {
+      return false;
+    }
+    
+    // Only skip if it looks like a simple formula that's commonly duplicated
+    // Common patterns: f(x) = ..., basic algebra, simple chemistry
+    bool isSimpleFormula = 
+        cleanMath.contains('f(x)') ||
+        cleanMath.contains('=') && cleanMath.length < 50 ||
+        (cleanMath.contains('\\text{') && cleanMath.contains('\\rightarrow')) ||
+        RegExp(r'^[a-zA-Z]\s*=\s*[^=]+$').hasMatch(cleanMath);
+    
+    return isSimpleFormula;
   }
 }
 
