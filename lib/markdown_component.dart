@@ -889,14 +889,17 @@ class _LatexRenderingHelpers {
       // Apply workaround function if provided, otherwise use content as-is
       String processedContent = workaround != null ? workaround(content) : content;
       
-      // Skip if content is empty
-      if (processedContent.trim().isEmpty) {
+      // Now remove LaTeX delimiters from the processed content
+      String cleanContent = removeLatexDelimiters(processedContent);
+      
+      // Skip if content is empty after cleaning
+      if (cleanContent.trim().isEmpty) {
         return const Text('Empty LaTeX content', style: TextStyle(color: Colors.grey));
       }
       
-      // Try to render the LaTeX directly without aggressive delimiter removal
+      // Try to render the LaTeX with cleaned content
       return Math.tex(
-        processedContent,
+        cleanContent,
         textStyle: TextStyle(
           color: style.color ?? Colors.white,
           fontSize: isExpanded ? (style.fontSize ?? 16.0) * 1.3 : (style.fontSize ?? 16.0),
