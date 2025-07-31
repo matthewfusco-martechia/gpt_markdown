@@ -33,6 +33,7 @@ class GptMarkdown extends StatelessWidget {
     this.onLinkTap,
     this.latexBuilder,
     this.codeBuilder,
+    this.inlineCodeBuilder,
     this.sourceTagBuilder,
     this.highlightBuilder,
     this.linkBuilder,
@@ -79,6 +80,9 @@ class GptMarkdown extends StatelessWidget {
 
   /// The code builder.
   final CodeBlockBuilder? codeBuilder;
+
+  /// The inline code builder.
+  final InlineCodeBuilder? inlineCodeBuilder;
 
   /// The source tag builder.
   final SourceTagBuilder? sourceTagBuilder;
@@ -136,6 +140,7 @@ class GptMarkdown extends StatelessWidget {
   /// List<MarkdownComponent> inlineComponents = [
   ///   ImageMd(),
   ///   ATagMd(),
+  ///   InlineCodeMd(),
   ///   TableMd(),
   ///   StrikeMd(),
   ///   BoldMd(),
@@ -196,6 +201,7 @@ class GptMarkdown extends StatelessWidget {
           latexWorkaround: latexWorkaround,
           latexBuilder: latexBuilder,
           codeBuilder: codeBuilder,
+          inlineCodeBuilder: inlineCodeBuilder,
           maxLines: maxLines,
           overflow: overflow,
           sourceTagBuilder: sourceTagBuilder,

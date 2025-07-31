@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 
+/// A builder function for the inline code.
+typedef InlineCodeBuilder =
+    Widget Function(BuildContext context, String code, TextStyle textStyle);
+
 /// A builder function for the ordered list.
 typedef OrderedListBuilder =
     Widget Function(
@@ -82,6 +86,7 @@ class GptMarkdownConfig {
     this.latexBuilder,
     this.followLinkColor = false,
     this.codeBuilder,
+    this.inlineCodeBuilder,
     this.sourceTagBuilder,
     this.highlightBuilder,
     this.orderedListBuilder,
@@ -125,6 +130,9 @@ class GptMarkdownConfig {
   /// The code builder.
   final CodeBlockBuilder? codeBuilder;
 
+  /// The inline code builder.
+  final InlineCodeBuilder? inlineCodeBuilder;
+
   /// The Ordered List builder.
   final OrderedListBuilder? orderedListBuilder;
 
@@ -167,6 +175,7 @@ class GptMarkdownConfig {
     final SourceTagBuilder? sourceTagBuilder,
     final bool? followLinkColor,
     final CodeBlockBuilder? codeBuilder,
+    final InlineCodeBuilder? inlineCodeBuilder,
     final int? maxLines,
     final TextOverflow? overflow,
     final HighlightBuilder? highlightBuilder,
@@ -188,6 +197,7 @@ class GptMarkdownConfig {
       latexBuilder: latexBuilder ?? this.latexBuilder,
       followLinkColor: followLinkColor ?? this.followLinkColor,
       codeBuilder: codeBuilder ?? this.codeBuilder,
+      inlineCodeBuilder: inlineCodeBuilder ?? this.inlineCodeBuilder,
       sourceTagBuilder: sourceTagBuilder ?? this.sourceTagBuilder,
       maxLines: maxLines ?? this.maxLines,
       overflow: overflow ?? this.overflow,

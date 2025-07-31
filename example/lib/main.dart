@@ -158,6 +158,12 @@ Markdown supports multiple header levels:
 ### Inline Code
 Here is an example of inline code: `print("Hello, world!")`.
 
+You can also use highlighted text for emphasis: ==This text is highlighted==
+
+Note the difference:
+- Inline code: `var x = 10;` (uses backticks)
+- Highlighted text: ==Important information== (uses double equals)
+
 ### Fenced Code Block (Python)
 ```python
 def greet(name):
@@ -491,6 +497,40 @@ This document was created to test the robustness of Markdown parsers and to ensu
                                                   ? style.fontSize! * 0.9
                                                   : 13.5,
                                               height: style.height,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      inlineCodeBuilder: (context, code, style) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .surface,
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .outline
+                                                  .withValues(alpha: 0.3),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            code,
+                                            style: TextStyle(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                              fontFamily: 'Courier New',
+                                              fontSize: style.fontSize != null
+                                                  ? style.fontSize! * 0.85
+                                                  : 12.75,
+                                              fontWeight: FontWeight.w500,
+                                              height: 1.2,
                                             ),
                                           ),
                                         );

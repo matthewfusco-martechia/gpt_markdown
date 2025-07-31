@@ -20,6 +20,7 @@ abstract class MarkdownComponent {
   static final List<MarkdownComponent> inlineComponents = [
     ATagMd(),
     ImageMd(),
+    InlineCodeMd(),
     TableMd(),
     StrikeMd(),
     BoldMd(),
@@ -449,9 +450,48 @@ class OrderedList extends BlockMd {
   }
 }
 
-class HighlightedText extends InlineMd {
+class InlineCodeMd extends InlineMd {
   @override
   RegExp get exp => RegExp(r"`(?!`)(.+?)(?<!`)`(?!`)");
+
+  @override
+  InlineSpan span(
+    BuildContext context,
+    String text,
+    final GptMarkdownConfig config,
+  ) {
+    var match = exp.firstMatch(text.trim());
+    var codeText = match?[1] ?? "";
+
+    if (config.inlineCodeBuilder != null) {
+      return WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: config.inlineCodeBuilder!(
+          context,
+          codeText,
+          config.style ?? const TextStyle(),
+        ),
+      );
+    }
+
+    // Default inline code styling
+    var style = config.style?.copyWith(
+      fontFamily: 'monospace',
+      backgroundColor: GptMarkdownTheme.of(context).highlightColor.withOpacity(0.1),
+      fontSize: (config.style?.fontSize ?? 14) * 0.9,
+    ) ?? TextStyle(
+      fontFamily: 'monospace',
+      backgroundColor: GptMarkdownTheme.of(context).highlightColor.withOpacity(0.1),
+      fontSize: 12.6,
+    );
+
+    return TextSpan(text: codeText, style: style);
+  }
+}
+
+class HighlightedText extends InlineMd {
+  @override
+  RegExp get exp => RegExp(r"==(.+?)==");
 
   @override
   InlineSpan span(

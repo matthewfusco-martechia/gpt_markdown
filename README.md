@@ -14,6 +14,7 @@ gpt_markdown is a drop-in replacement for flutter_markdown, offering extended su
 | ✨ Feature  | ✅ Supported | 🔜 Upcoming |
 | --- | --- | --- |
 | 💻 Code Block | ✅ |  |
+| 💾 Inline Code | ✅ |  |
 | 📊 Table | ✅ |  |
 | 📝 Heading | ✅ |  |
 | 📌 Unordered List | ✅ |  |
@@ -116,6 +117,13 @@ Render a wide variety of content with full Markdown and LaTeX support, including
 [x] Checked checkbox
 ```
 
+- Inline code and highlighted text
+
+```
+`inline code` - renders as monospace code
+==highlighted text== - renders with background highlighting
+```
+
 - You can also make the content selectable using `SelectionArea` widget.
 
 ## 🚀 Why Use GPT Markdown?
@@ -150,6 +158,38 @@ return GptMarkdown(
 ),
 
 ```
+
+## 🎨 Custom Builders
+
+You can customize how different markdown elements are rendered using custom builders:
+
+### Inline Code Builder
+
+```dart
+GptMarkdown(
+  '`print("Hello, world!")`',
+  inlineCodeBuilder: (context, code, style) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Text(
+        code,
+        style: TextStyle(
+          fontFamily: 'Courier New',
+          fontSize: 13,
+          color: Colors.blue[800],
+        ),
+      ),
+    );
+  },
+)
+```
+
+Other available builders include: `codeBuilder`, `highlightBuilder`, `linkBuilder`, `imageBuilder`, `latexBuilder`, and more.
 
 ## 💡 ChatGPT Response Examples
 
