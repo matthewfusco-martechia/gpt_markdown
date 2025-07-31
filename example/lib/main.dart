@@ -600,70 +600,70 @@ This document was created to test the robustness of Markdown parsers and to ensu
                                       //     height: 100,
                                       //   );
                                       // },
-                                      latexBuilder:
-                                          (context, tex, textStyle, inline) {
-                                        if (tex.contains(r"\begin{tabular}")) {
-                                          // return table.
-                                          String tableString = "|${(RegExp(
-                                                r"^\\begin\{tabular\}\{.*?\}(.*?)\\end\{tabular\}$",
-                                                multiLine: true,
-                                                dotAll: true,
-                                              ).firstMatch(tex)?[1] ?? "").trim()}|";
-                                          tableString = tableString
-                                              .replaceAll(r"\\", "|\n|")
-                                              .replaceAll(r"\hline", "")
-                                              .replaceAll(
-                                                  RegExp(r"(?<!\\)&"), "|");
-                                          var tableStringList = tableString
-                                              .split("\n")
-                                            ..insert(1, "|---|");
-                                          tableString =
-                                              tableStringList.join("\n");
-                                          return GptMarkdown(tableString);
-                                        }
-                                        var controller = ScrollController();
-                                        Widget child = Math.tex(
-                                          tex,
-                                          textStyle: textStyle,
-                                        );
-                                        if (!inline) {
-                                          child = Padding(
-                                            padding: const EdgeInsets.all(0.0),
-                                            child: Material(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onInverseSurface,
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: Scrollbar(
-                                                  controller: controller,
-                                                  child: SingleChildScrollView(
-                                                    controller: controller,
-                                                    scrollDirection:
-                                                        Axis.horizontal,
-                                                    child: Math.tex(
-                                                      tex,
-                                                      textStyle: textStyle,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                        child = SelectableAdapter(
-                                          selectedText: tex,
-                                          child: Math.tex(tex),
-                                        );
-                                        child = InkWell(
-                                          onTap: () {
-                                            debugPrint("Hello world");
-                                          },
-                                          child: child,
-                                        );
-                                        return child;
-                                      },
+                                      // latexBuilder:
+                                      //     (context, tex, textStyle, inline) {
+                                      //   if (tex.contains(r"\begin{tabular}")) {
+                                      //     // return table.
+                                      //     String tableString = "|${(RegExp(
+                                      //           r"^\\begin\{tabular\}\{.*?\}(.*?)\\end\{tabular\}$",
+                                      //           multiLine: true,
+                                      //           dotAll: true,
+                                      //         ).firstMatch(tex)?[1] ?? "").trim()}|";
+                                      //     tableString = tableString
+                                      //         .replaceAll(r"\\", "|\n|")
+                                      //         .replaceAll(r"\hline", "")
+                                      //         .replaceAll(
+                                      //             RegExp(r"(?<!\\)&"), "|");
+                                      //     var tableStringList = tableString
+                                      //         .split("\n")
+                                      //       ..insert(1, "|---|");
+                                      //     tableString =
+                                      //         tableStringList.join("\n");
+                                      //     return GptMarkdown(tableString);
+                                      //   }
+                                      //   var controller = ScrollController();
+                                      //   Widget child = Math.tex(
+                                      //     tex,
+                                      //     textStyle: textStyle,
+                                      //   );
+                                      //   if (!inline) {
+                                      //     child = Padding(
+                                      //       padding: const EdgeInsets.all(0.0),
+                                      //       child: Material(
+                                      //         color: Theme.of(context)
+                                      //             .colorScheme
+                                      //             .onInverseSurface,
+                                      //         child: Padding(
+                                      //           padding:
+                                      //               const EdgeInsets.all(8.0),
+                                      //           child: Scrollbar(
+                                      //             controller: controller,
+                                      //             child: SingleChildScrollView(
+                                      //               controller: controller,
+                                      //               scrollDirection:
+                                      //                   Axis.horizontal,
+                                      //               child: Math.tex(
+                                      //                 tex,
+                                      //                 textStyle: textStyle,
+                                      //               ),
+                                      //             ),
+                                      //           ),
+                                      //         ),
+                                      //       ),
+                                      //     );
+                                      //   }
+                                      //   child = SelectableAdapter(
+                                      //     selectedText: tex,
+                                      //     child: Math.tex(tex),
+                                      //   );
+                                      //   child = InkWell(
+                                      //     onTap: () {
+                                      //       debugPrint("Hello world");
+                                      //     },
+                                      //     child: child,
+                                      //   );
+                                      //   return child;
+                                      // },
                                       sourceTagBuilder:
                                           (buildContext, string, textStyle) {
                                         var value = int.tryParse(string);
