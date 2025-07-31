@@ -22,7 +22,7 @@ gpt_markdown is a drop-in replacement for flutter_markdown, offering extended su
 | 🔘 Radio Button | ✅ |  |
 | ☑️ Check Box | ✅ |  |
 | ➖ Horizontal Line | ✅ |  |
-| 🔢 Latex Math | ✅ |  |
+| 🔢 Enhanced LaTeX Math | ✅ |  |
 | ↩️ Indent | ✅ |
 | ↩️ BlockQuote | ✅ |
 | 🖼️ Image | ✅ |
@@ -107,6 +107,12 @@ Render a wide variety of content with full Markdown and LaTeX support, including
 ```
 \(\frac a b\)
 ```
+
+**Enhanced LaTeX Features:**
+- Professional dark-themed containers with interactive buttons
+- Copy LaTeX source, share as .tex files, expand to full-screen modal
+- Smart equation type detection and error handling
+- Horizontal scrolling for long equations
 
 - Radio button and checkbox
 
@@ -212,7 +218,43 @@ GptMarkdown(
 )
 ```
 
-Other available builders include: `codeBuilder`, `highlightBuilder`, `linkBuilder`, `imageBuilder`, `latexBuilder`, and more.
+### Enhanced LaTeX Rendering
+
+LaTeX expressions now come with professional styling and interactive features out of the box:
+
+- **Professional dark UI** with rounded corners and modern styling
+- **Interactive buttons**: Copy, Share (.tex files), and Expand for full-screen view  
+- **Smart type detection**: Automatically detects equation types (LaTeX Math, LaTeX Equation, etc.)
+- **Error handling**: Graceful fallback with raw LaTeX display if rendering fails
+- **Horizontal scrolling**: For long equations
+- **Modal expansion**: Full-screen draggable view for better readability
+
+```dart
+GptMarkdown(
+  r'''
+  Inline math: \( x = \frac{-b \pm \sqrt{b^2-4ac}}{2a} \)
+  
+  Display math:
+  \[
+  \int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}
+  \]
+  ''',
+  // Custom LaTeX builder still available for full control
+  latexBuilder: (context, tex, style, isInline) {
+    // Your custom LaTeX rendering
+    return YourCustomLatexWidget(tex);
+  },
+)
+```
+
+**Features:**
+- Copy LaTeX source with haptic feedback
+- Share as .tex files for easy collaboration
+- Expand to full-screen modal for detailed viewing
+- Automatic LaTeX delimiter cleaning and processing
+- Error resilience with fallback display
+
+Other available builders include: `codeBuilder`, `highlightBuilder`, `linkBuilder`, `imageBuilder`, and more.
 
 ## 💡 ChatGPT Response Examples
 

@@ -637,6 +637,430 @@ class ItalicMd extends InlineMd {
   }
 }
 
+/// A stateful copy button widget for LaTeX content
+class _LatexCopyButton extends StatefulWidget {
+  final String latexContent;
+
+  const _LatexCopyButton({super.key, required this.latexContent});
+
+  @override
+  State<_LatexCopyButton> createState() => _LatexCopyButtonState();
+}
+
+class _LatexCopyButtonState extends State<_LatexCopyButton> {
+  bool isCopied = false;
+
+  void handleCopy() async {
+    try {
+      if (widget.latexContent.isNotEmpty) {
+        HapticFeedback.lightImpact();
+        await Clipboard.setData(ClipboardData(text: widget.latexContent));
+        setState(() {
+          isCopied = true;
+        });
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              isCopied = false;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to copy: ${e.toString()}'),
+          backgroundColor: Colors.red[700],
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: handleCopy,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          isCopied ? Icons.check : Icons.copy_outlined,
+          color: isCopied ? const Color(0xFF4CAF50) : const Color(0xFFA0A0A0),
+          size: 18,
+        ),
+      ),
+    );
+  }
+}
+
+/// A share button widget for LaTeX content
+class _LatexShareButton extends StatelessWidget {
+  final String latexContent;
+  final String displayType;
+
+  const _LatexShareButton({
+    super.key,
+    required this.latexContent,
+    required this.displayType,
+  });
+
+  void handleShare(BuildContext context) async {
+    try {
+      if (latexContent.isEmpty) return;
+      HapticFeedback.lightImpact();
+
+      // Show immediate user feedback
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text('Preparing LaTeX file for sharing...'),
+              ],
+            ),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'latex_${displayType.toLowerCase()}_$timestamp.tex';
+
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/$fileName');
+
+      await file.writeAsString(latexContent);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '$displayType LaTeX file',
+        subject: '$displayType LaTeX',
+      );
+    } catch (e) {
+      debugPrint('LaTeX share failed: ${e.toString()}');
+      // Fallback to text sharing
+      try {
+        await Share.share(
+          latexContent,
+          subject: '$displayType LaTeX',
+        );
+      } catch (fallbackError) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to share: ${fallbackError.toString()}'),
+              backgroundColor: Colors.red[700],
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => handleShare(context),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: const Icon(
+          Icons.share_outlined,
+          color: Color(0xFFA0A0A0),
+          size: 18,
+        ),
+      ),
+    );
+  }
+}
+
+/// Helper functions for enhanced LaTeX rendering
+class _LatexRenderingHelpers {
+  // Get appropriate display type label
+  static String getLatexDisplayType(String content) {
+    if (content.contains(RegExp(r'\\begin\{equation\}'))) return 'LaTeX Equation';
+    if (content.contains(RegExp(r'\\begin\{align\}'))) return 'LaTeX Alignment';
+    if (content.contains(RegExp(r'\\documentclass'))) return 'LaTeX Document';
+    if (content.contains(RegExp(r'\\\[')) && content.contains(RegExp(r'\\\]'))) return 'LaTeX Display Math';
+    if (content.contains(RegExp(r'\$\$'))) return 'LaTeX Math';
+    return 'LaTeX Code';
+  }
+
+  // Show expanded view for LaTeX content
+  static void showLatexExpandedView(BuildContext context, String latexData, String displayType, TextStyle style) {
+    HapticFeedback.lightImpact();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF141414),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext modalContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, controller) {
+            return Column(
+              children: [
+                // Modal Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // LaTeX badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A2A2A),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          displayType.toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF8A8A8A),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Share button
+                      _LatexShareButton(latexContent: latexData, displayType: displayType),
+                      const SizedBox(width: 12),
+                      // Copy button
+                      _LatexCopyButton(latexContent: latexData),
+                      const SizedBox(width: 12),
+                      // Close button
+                      InkWell(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.of(modalContext).pop();
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.close,
+                            color: Color(0xFFA0A0A0),
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Separator
+                Container(
+                  height: 1,
+                  color: const Color(0xFF2A2A2A),
+                ),
+                // Expanded content
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: controller,
+                    padding: const EdgeInsets.all(20),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F0F0F),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF2A2A2A)),
+                      ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: buildLatexContent(latexData, style, isExpanded: true),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Build LaTeX content with proper rendering
+  static Widget buildLatexContent(String content, TextStyle style, {bool isExpanded = false}) {
+    try {
+      // Clean the LaTeX content
+      String cleanContent = removeLatexDelimiters(content.trim());
+      
+      // Skip if content is empty after cleaning
+      if (cleanContent.isEmpty) {
+        return const Text('Empty LaTeX content', style: TextStyle(color: Colors.grey));
+      }
+      
+      // Try to render the LaTeX
+      return Math.tex(
+        cleanContent,
+        textStyle: TextStyle(
+          color: style.color ?? Colors.white,
+          fontSize: isExpanded ? (style.fontSize ?? 14.0) * 1.2 : (style.fontSize ?? 14.0),
+        ),
+        mathStyle: MathStyle.display,
+        settings: const TexParserSettings(strict: Strict.ignore),
+      );
+    } catch (e) {
+      // Fallback to displaying raw LaTeX if rendering fails
+      debugPrint('LaTeX rendering failed: $e');
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF3A3A3A)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'LaTeX Rendering Error',
+              style: TextStyle(
+                color: Colors.red[300],
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Error: $e',
+              style: TextStyle(
+                color: Colors.red[400],
+                fontSize: 10,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(
+              content,
+              style: TextStyle(
+                fontFamily: 'JetBrains Mono',
+                fontSize: style.fontSize ?? 14.0,
+                color: const Color(0xFFE1E1E1),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  // Comprehensive LaTeX delimiter removal
+  static String removeLatexDelimiters(String content) {
+    String cleanContent = content;
+    
+    // List of LaTeX math environments to remove
+    final mathEnvironments = [
+      'equation',
+      'equation*',
+      'align',
+      'align*',
+      'gather',
+      'gather*',
+      'multline',
+      'multline*',
+      'split',
+      'displaymath',
+      'math',
+      'eqnarray',
+      'eqnarray*',
+      'flalign',
+      'flalign*',
+      'alignat',
+      'alignat*',
+      'xalignat',
+      'xalignat*',
+      'xxalignat',
+      'subequations',
+    ];
+    
+    // Remove \begin{env}...\end{env} environments
+    for (final env in mathEnvironments) {
+      final beginPattern = RegExp('\\\\begin\\{$env\\}\\s*', multiLine: true);
+      final endPattern = RegExp('\\s*\\\\end\\{$env\\}', multiLine: true);
+      cleanContent = cleanContent.replaceAll(beginPattern, '');
+      cleanContent = cleanContent.replaceAll(endPattern, '');
+    }
+    
+    // Handle basic math delimiters with priority order
+    // Handle \[ ... \] delimiters (display math)
+    if (cleanContent.startsWith('\\[') && cleanContent.endsWith('\\]')) {
+      cleanContent = cleanContent.substring(2, cleanContent.length - 2).trim();
+    }
+    // Handle \( ... \) delimiters (inline math)
+    else if (cleanContent.startsWith('\\(') && cleanContent.endsWith('\\)')) {
+      cleanContent = cleanContent.substring(2, cleanContent.length - 2).trim();
+    }
+    // Handle $$ ... $$ delimiters (display math)
+    else if (cleanContent.startsWith('\$\$') && cleanContent.endsWith('\$\$')) {
+      cleanContent = cleanContent.substring(2, cleanContent.length - 2).trim();
+    }
+    // Handle single $ ... $ delimiters (inline math)
+    else if (cleanContent.startsWith('\$') && cleanContent.endsWith('\$') && cleanContent.length > 2) {
+      cleanContent = cleanContent.substring(1, cleanContent.length - 1).trim();
+    }
+    
+    // Handle problematic alignment and formatting characters that cause parser errors
+    // Replace alignment characters with spaces (common in align environments)
+    cleanContent = cleanContent.replaceAll('&', ' ');
+    
+    // Replace line breaks in equations with spaces
+    cleanContent = cleanContent.replaceAll('\\\\', ' ');
+    
+    // Clean up any remaining delimiter fragments and improve LaTeX formatting
+    final delimiterPatterns = [
+      '\\\\\\[', '\\\\\\]',    // \[ \]
+      '\\\\\\(', '\\\\\\)',    // \( \)
+      '\\\$\\\$',              // $$
+      '\\\$',                  // $
+      '\\\\displaystyle',      // \displaystyle
+      '\\\\documentclass\\{.*?\\}',  // \documentclass{...}
+      '\\\\usepackage\\{.*?\\}',     // \usepackage{...}
+      '\\\\begin\\{document\\}',     // \begin{document}
+      '\\\\end\\{document\\}',       // \end{document}
+      '\\\\text\\{',           // \text{ (start)
+      '\\\\mathrm\\{',         // \mathrm{ (start)
+      '\\\\mathbf\\{',         // \mathbf{ (start)
+      '\\\\mathit\\{',         // \mathit{ (start)
+    ];
+    
+    for (final pattern in delimiterPatterns) {
+      cleanContent = cleanContent.replaceAll(RegExp(pattern), '');
+    }
+    
+    // Clean up whitespace and newlines
+    cleanContent = cleanContent
+        .replaceAll(RegExp(r'\n\s*\n'), ' ')  // Multiple newlines to single space
+        .replaceAll(RegExp(r'\s+'), ' ')      // Multiple spaces to single space
+        .trim();
+    
+    return cleanContent;
+  }
+}
+
 class LatexMathMultiLine extends BlockMd {
   @override
   String get expString => (r"\ *\\\[((?:.)*?)\\\]|(\ *\\begin.*?\\end{.*?})");
@@ -654,56 +1078,114 @@ class LatexMathMultiLine extends BlockMd {
     String mathText = p0?[1] ?? p0?[2] ?? '';
     var workaround = config.latexWorkaround ?? (String tex) => tex;
 
-    var builder =
-        config.latexBuilder ??
-        (BuildContext context, String tex, TextStyle textStyle, bool inline) =>
-            SelectableAdapter(
-              selectedText: tex,
-              child: Math.tex(
-                tex,
-                textStyle: textStyle,
-                mathStyle: MathStyle.display,
-                textScaleFactor: 1,
-                settings: const TexParserSettings(strict: Strict.ignore),
-                options: MathOptions(
-                  sizeUnderTextStyle: MathSize.large,
-                  color:
-                      config.style?.color ??
-                      Theme.of(context).colorScheme.onSurface,
-                  fontSize:
-                      config.style?.fontSize ??
-                      Theme.of(context).textTheme.bodyMedium?.fontSize,
-                  mathFontOptions: FontOptions(
-                    fontFamily: "Main",
-                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
-                    fontShape: FontStyle.normal,
-                  ),
-                  textFontOptions: FontOptions(
-                    fontFamily: "Main",
-                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
-                    fontShape: FontStyle.normal,
-                  ),
-                  style: MathStyle.display,
-                ),
-                onErrorFallback: (err) {
-                  return Text(
-                    workaround(mathText),
-                    textDirection: config.textDirection,
-                    style: textStyle.copyWith(
-                      color:
-                          (!kDebugMode)
-                              ? null
-                              : Theme.of(context).colorScheme.error,
-                    ),
-                  );
-                },
+    // If custom latexBuilder is provided, use it
+    if (config.latexBuilder != null) {
+      return config.latexBuilder!(
+        context,
+        workaround(mathText),
+        config.style ?? const TextStyle(),
+        false,
+      );
+    }
+
+    // Use enhanced LaTeX rendering
+    final displayType = _LatexRenderingHelpers.getLatexDisplayType(mathText);
+    final originalContent = mathText;
+    
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0F0F),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2A2A2A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with badge and buttons
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
               ),
-            );
-    return builder(
-      context,
-      workaround(mathText),
-      config.style ?? const TextStyle(),
-      false,
+            ),
+            child: Row(
+              children: [
+                // LaTeX badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    displayType.toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF8A8A8A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // Expand button
+                InkWell(
+                  onTap: () => _LatexRenderingHelpers.showLatexExpandedView(
+                    context, 
+                    originalContent, 
+                    displayType,
+                    config.style ?? const TextStyle(),
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.open_in_full,
+                      color: Color(0xFFA0A0A0),
+                      size: 18,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Share button
+                _LatexShareButton(latexContent: originalContent, displayType: displayType),
+                const SizedBox(width: 12),
+                // Copy button
+                _LatexCopyButton(latexContent: originalContent),
+              ],
+            ),
+          ),
+          // Separator
+          Container(
+            height: 1,
+            color: const Color(0xFF2A2A2A),
+          ),
+          // Content area - rendered LaTeX
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: _LatexRenderingHelpers.buildLatexContent(
+                originalContent,
+                config.style ?? const TextStyle(),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -729,59 +1211,164 @@ class LatexMath extends InlineMd {
     p0?.group(0);
     String mathText = p0?[1]?.toString() ?? "";
     var workaround = config.latexWorkaround ?? (String tex) => tex;
-    var builder =
-        config.latexBuilder ??
-        (BuildContext context, String tex, TextStyle textStyle, bool inline) =>
-            SelectableAdapter(
-              selectedText: tex,
-              child: Math.tex(
-                tex,
-                textStyle: textStyle,
-                mathStyle: MathStyle.display,
-                textScaleFactor: 1,
-                settings: const TexParserSettings(strict: Strict.ignore),
-                options: MathOptions(
-                  sizeUnderTextStyle: MathSize.large,
-                  color:
-                      config.style?.color ??
-                      Theme.of(context).colorScheme.onSurface,
-                  fontSize:
-                      config.style?.fontSize ??
-                      Theme.of(context).textTheme.bodyMedium?.fontSize,
-                  mathFontOptions: FontOptions(
-                    fontFamily: "Main",
-                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
-                    fontShape: FontStyle.normal,
-                  ),
-                  textFontOptions: FontOptions(
-                    fontFamily: "Main",
-                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
-                    fontShape: FontStyle.normal,
-                  ),
-                  style: MathStyle.display,
-                ),
-                onErrorFallback: (err) {
-                  return Text(
-                    workaround(mathText),
-                    textDirection: config.textDirection,
-                    style: textStyle.copyWith(
-                      color:
-                          (!kDebugMode)
-                              ? null
-                              : Theme.of(context).colorScheme.error,
-                    ),
-                  );
-                },
-              ),
-            );
+
+    // If custom latexBuilder is provided, use it
+    if (config.latexBuilder != null) {
+      return WidgetSpan(
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        child: config.latexBuilder!(
+          context,
+          workaround(mathText),
+          config.style ?? const TextStyle(),
+          true,
+        ),
+      );
+    }
+
+    // Use enhanced LaTeX rendering for inline math
+    final displayType = _LatexRenderingHelpers.getLatexDisplayType(mathText);
+    final originalContent = mathText;
+    
     return WidgetSpan(
       alignment: PlaceholderAlignment.baseline,
       baseline: TextBaseline.alphabetic,
-      child: builder(
-        context,
-        workaround(mathText),
-        config.style ?? const TextStyle(),
-        true,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0F0F),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF2A2A2A)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Compact header for inline math
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // LaTeX badge (smaller for inline)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A2A2A),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      displayType.toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF8A8A8A),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Expand button (smaller)
+                  InkWell(
+                    onTap: () => _LatexRenderingHelpers.showLatexExpandedView(
+                      context, 
+                      originalContent, 
+                      displayType,
+                      config.style ?? const TextStyle(),
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      child: const Icon(
+                        Icons.open_in_full,
+                        color: Color(0xFFA0A0A0),
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  // Share button (smaller)
+                  InkWell(
+                    onTap: () async {
+                      try {
+                        if (originalContent.isEmpty) return;
+                        HapticFeedback.lightImpact();
+                        final timestamp = DateTime.now().millisecondsSinceEpoch;
+                        final fileName = 'latex_inline_$timestamp.tex';
+                        final tempDir = await getTemporaryDirectory();
+                        final file = File('${tempDir.path}/$fileName');
+                        await file.writeAsString(originalContent);
+                        await Share.shareXFiles([XFile(file.path)]);
+                      } catch (e) {
+                        await Share.share(originalContent);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      child: const Icon(
+                        Icons.share_outlined,
+                        color: Color(0xFFA0A0A0),
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  // Copy button (smaller)
+                  InkWell(
+                    onTap: () async {
+                      try {
+                        HapticFeedback.lightImpact();
+                        await Clipboard.setData(ClipboardData(text: originalContent));
+                      } catch (e) {
+                        debugPrint('Copy failed: $e');
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      child: const Icon(
+                        Icons.copy_outlined,
+                        color: Color(0xFFA0A0A0),
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Separator
+            Container(
+              height: 1,
+              color: const Color(0xFF2A2A2A),
+            ),
+            // Content area - compact for inline
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
+                ),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: _LatexRenderingHelpers.buildLatexContent(
+                  originalContent,
+                  config.style ?? const TextStyle(),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
