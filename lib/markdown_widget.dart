@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'dart:math' as math;
+import 'package:url_launcher/url_launcher.dart';
 
 class MarkdownWidget extends StatefulWidget {
   const MarkdownWidget({
@@ -73,6 +74,8 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
     if (widget.data.contains('<think>')) {
       print('Adding think block');
       final isComplete = widget.data.contains('</think>');
+      print('Think block isComplete: $isComplete');
+      print('Data ends with: ${widget.data.substring(widget.data.length - 50)}');
 
       while (_thinkBlockStates.isEmpty) {
         _thinkBlockStates.add(false);
@@ -144,31 +147,31 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
       // Enhanced heading styles with proper hierarchy
       h1Style: TextStyle(
         color: widget.mdcolor,
-        fontSize: widget.fontSize * 1.8,
+        fontSize: widget.fontSize * 1.2,
         fontWeight: FontWeight.bold,
         height: 1.2,
       ),
       h2Style: TextStyle(
         color: widget.mdcolor,
-        fontSize: widget.fontSize * 1.6,
+        fontSize: widget.fontSize * 1.15,
         fontWeight: FontWeight.bold,
         height: 1.3,
       ),
       h3Style: TextStyle(
         color: widget.mdcolor,
-        fontSize: widget.fontSize * 1.4,
+        fontSize: widget.fontSize * 1,
         fontWeight: FontWeight.w600,
         height: 1.3,
       ),
       h4Style: TextStyle(
         color: widget.mdcolor,
-        fontSize: widget.fontSize * 1.2,
+        fontSize: widget.fontSize * 1,
         fontWeight: FontWeight.w600,
         height: 1.4,
       ),
       h5Style: TextStyle(
         color: widget.mdcolor,
-        fontSize: widget.fontSize * 1.1,
+        fontSize: widget.fontSize * 1,
         fontWeight: FontWeight.w500,
         height: 1.4,
       ),
@@ -205,18 +208,34 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
       // Custom code block styling removed - now uses enhanced CodeField
       // Custom link styling
       linkBuilder: (context, label, url, style) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          decoration: BoxDecoration(
-            color: widget.linkContainerColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: Text.rich(
-            label,
-            style: style.copyWith(
-              color: widget.linkContainerColor,
-              decoration: TextDecoration.underline,
-              decorationColor: widget.linkContainerColor.withOpacity(0.5),
+        return GestureDetector(
+          onTap: () async {
+            if (url != null) {
+              final uri = Uri.parse(url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: widget.iconFillColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: widget.iconBorderColor.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              label.toPlainText(),
+              style: TextStyle(
+                color: widget.mdcolor,
+                fontFamily: 'Courier New',
+                fontSize: widget.fontSize * 0.9,
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+              ),
             ),
           ),
         );
@@ -300,90 +319,109 @@ class _ThinkBlockState extends State<ThinkBlock> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final bool isThinking = !widget.isComplete;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header that matches the desired design
           InkWell(
-            onTap: _toggle,
+            onTap: isThinking ? null : _toggle, // Disable tap while thinking
             borderRadius: BorderRadius.circular(6),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A), // Dark blue background
+                color: const Color(0xFF000000), // Black header background
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: const Color(0xFF1E293B),
-                  width: 1,
-                ),
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Gear icon matching the design
-                  Icon(
-                    Icons.settings,
-                    color: const Color(0xFF3B82F6), // Blue icon color
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  // "Think Block" text
-                  Text(
-                    'Think Block',
-                    style: TextStyle(
-                      color: const Color(0xFFE2E8F0), // Light text color
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                  if (isThinking)
+                    // Show spinner and "Thinking..." text
+                    ...[
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            const Color(0xFFD1D5DB)),
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  // Chevron icon that rotates on expand/collapse
-                  AnimatedBuilder(
-                    animation: _rotationAnimation,
-                    builder: (context, child) {
-                      return Transform.rotate(
-                        angle: _rotationAnimation.value * 1.5708, // 90 degrees in radians
-                        child: Icon(
-                          Icons.keyboard_arrow_down,
-                          color: const Color(0xFF64748B),
-                          size: 20,
-                        ),
-                      );
-                    },
-                  ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Thinking...',
+                      style: TextStyle(
+                        color: const Color(0xFFD1D5DB),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ]
+                  else
+                    // Show icon, "Thoughts" text, and chevron when complete
+                    ...[
+                    Icon(
+                      Icons.psychology_outlined,
+                      color: const Color(0xFFD1D5DB),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Thoughts',
+                      style: TextStyle(
+                        color: const Color(0xFFD1D5DB),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Spacer(),
+                    AnimatedBuilder(
+                      animation: _rotationAnimation,
+                      builder: (context, child) {
+                        return Transform.rotate(
+                          angle: _rotationAnimation.value * -math.pi,
+                          child: Icon(
+                            Icons.keyboard_arrow_down,
+                            color: const Color(0xFF9CA3AF),
+                            size: 20,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-          // Expandable content with smooth animation
-          SizeTransition(
-            sizeFactor: _expandAnimation,
-            axisAlignment: -1.0,
-            child: Container(
-              margin: const EdgeInsets.only(top: 8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A), // Dark background for content
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: const Color(0xFF2A2A2A),
-                  width: 1,
-                ),
-              ),
-              child: widget.contentWidget ?? 
-                Text(
-                  widget.content,
-                  style: TextStyle(
-                    color: const Color(0xFFD1D5DB), // Light gray text for content
-                    fontSize: widget.fontSize * 0.9,
-                    height: 1.5,
-                    fontFamily: 'SF Pro Text', // Cursor's font family
+          // Only build the expandable content area if thinking is complete
+          if (!isThinking)
+            SizeTransition(
+              sizeFactor: _expandAnimation,
+              axisAlignment: -1.0,
+              child: Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0E0E0E),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF242424),
+                    width: 1,
                   ),
                 ),
+                child: widget.contentWidget ??
+                    Text(
+                      widget.content,
+                      style: TextStyle(
+                        color: const Color(0xFFD1D5DB),
+                        fontSize: widget.fontSize * 0.9,
+                        height: 1.5,
+                      ),
+                    ),
+              ),
             ),
-          ),
         ],
       ),
     );
