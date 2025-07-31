@@ -1983,8 +1983,20 @@ class CodeBlockMd extends BlockMd {
                 // Clean the LaTeX content to extract just math expressions
                 final cleanedLatex = _cleanLatexDocument(latexContent);
                 final processedLatex = workaround(cleanedLatex);
+                
+                // For display math content that was stripped of delimiters, add them back
+                String finalLatex = processedLatex;
+                if (!processedLatex.contains('\\[') && !processedLatex.contains('\\begin') && 
+                    !processedLatex.contains('\$\$') && processedLatex.trim().isNotEmpty) {
+                  // If content doesn't have math delimiters but contains math commands, wrap it
+                  if (processedLatex.contains('\\text{') || processedLatex.contains('\\rightarrow') || 
+                      processedLatex.contains('\\frac{') || processedLatex.contains('\\sqrt{')) {
+                    finalLatex = '\\[${processedLatex}\\]';
+                  }
+                }
+                
                 return Math.tex(
-                  processedLatex,
+                  finalLatex,
                   textStyle: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
                     fontSize: config.style?.fontSize ?? 16.0,
