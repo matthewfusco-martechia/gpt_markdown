@@ -163,6 +163,29 @@ return GptMarkdown(
 
 You can customize how different markdown elements are rendered using custom builders:
 
+### Heading Styles
+
+You can customize the size and appearance of each heading level:
+
+```dart
+GptMarkdown(
+  '''
+  # Heading 1
+  ## Heading 2  
+  ### Heading 3
+  #### Heading 4
+  ##### Heading 5
+  ###### Heading 6
+  ''',
+  h1Style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+  h2Style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+  h3Style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+  h4Style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+  h5Style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+  h6Style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+)
+```
+
 ### Inline Code Builder
 
 ```dart

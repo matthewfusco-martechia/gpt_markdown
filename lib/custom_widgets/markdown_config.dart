@@ -98,6 +98,12 @@ class GptMarkdownConfig {
     this.components,
     this.inlineComponents,
     this.tableBuilder,
+    this.h1Style,
+    this.h2Style,
+    this.h3Style,
+    this.h4Style,
+    this.h5Style,
+    this.h6Style,
   });
 
   /// The direction of the text.
@@ -163,6 +169,24 @@ class GptMarkdownConfig {
   /// The table builder.
   final TableBuilder? tableBuilder;
 
+  /// Custom style for H1 headings.
+  final TextStyle? h1Style;
+
+  /// Custom style for H2 headings.
+  final TextStyle? h2Style;
+
+  /// Custom style for H3 headings.
+  final TextStyle? h3Style;
+
+  /// Custom style for H4 headings.
+  final TextStyle? h4Style;
+
+  /// Custom style for H5 headings.
+  final TextStyle? h5Style;
+
+  /// Custom style for H6 headings.
+  final TextStyle? h6Style;
+
   /// A copy of the configuration with the specified parameters.
   GptMarkdownConfig copyWith({
     TextStyle? style,
@@ -186,6 +210,12 @@ class GptMarkdownConfig {
     final List<MarkdownComponent>? components,
     final List<MarkdownComponent>? inlineComponents,
     final TableBuilder? tableBuilder,
+    final TextStyle? h1Style,
+    final TextStyle? h2Style,
+    final TextStyle? h3Style,
+    final TextStyle? h4Style,
+    final TextStyle? h5Style,
+    final TextStyle? h6Style,
   }) {
     return GptMarkdownConfig(
       style: style ?? this.style,
@@ -209,6 +239,12 @@ class GptMarkdownConfig {
       components: components ?? this.components,
       inlineComponents: inlineComponents ?? this.inlineComponents,
       tableBuilder: tableBuilder ?? this.tableBuilder,
+      h1Style: h1Style ?? this.h1Style,
+      h2Style: h2Style ?? this.h2Style,
+      h3Style: h3Style ?? this.h3Style,
+      h4Style: h4Style ?? this.h4Style,
+      h5Style: h5Style ?? this.h5Style,
+      h6Style: h6Style ?? this.h6Style,
     );
   }
 

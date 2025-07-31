@@ -44,6 +44,12 @@ class GptMarkdown extends StatelessWidget {
     this.tableBuilder,
     this.components,
     this.inlineComponents,
+    this.h1Style,
+    this.h2Style,
+    this.h3Style,
+    this.h4Style,
+    this.h5Style,
+    this.h6Style,
     this.useDollarSignsForLatex = false,
   });
 
@@ -101,6 +107,24 @@ class GptMarkdown extends StatelessWidget {
 
   /// The unordered list builder.
   final UnOrderedListBuilder? unOrderedListBuilder;
+
+  /// Custom style for H1 headings. If not provided, uses theme default.
+  final TextStyle? h1Style;
+
+  /// Custom style for H2 headings. If not provided, uses theme default.
+  final TextStyle? h2Style;
+
+  /// Custom style for H3 headings. If not provided, uses theme default.
+  final TextStyle? h3Style;
+
+  /// Custom style for H4 headings. If not provided, uses theme default.
+  final TextStyle? h4Style;
+
+  /// Custom style for H5 headings. If not provided, uses theme default.
+  final TextStyle? h5Style;
+
+  /// Custom style for H6 headings. If not provided, uses theme default.
+  final TextStyle? h6Style;
 
   /// Whether to use dollar signs for LaTeX.
   final bool useDollarSignsForLatex;
@@ -213,6 +237,12 @@ class GptMarkdown extends StatelessWidget {
           components: components,
           inlineComponents: inlineComponents,
           tableBuilder: tableBuilder,
+          h1Style: h1Style,
+          h2Style: h2Style,
+          h3Style: h3Style,
+          h4Style: h4Style,
+          h5Style: h5Style,
+          h6Style: h6Style,
         ),
       ),
     );

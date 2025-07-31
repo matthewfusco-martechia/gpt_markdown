@@ -467,6 +467,37 @@ This document was created to test the robustness of Markdown parsers and to ensu
                                           // fontFamily: 'monospace',
                                           // fontWeight: FontWeight.bold,
                                           ),
+                                      // Custom heading styles for better UX
+                                      h1Style: const TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.2,
+                                      ),
+                                      h2Style: const TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.3,
+                                      ),
+                                      h3Style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.3,
+                                      ),
+                                      h4Style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.4,
+                                      ),
+                                      h5Style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.4,
+                                      ),
+                                      h6Style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.4,
+                                      ),
                                       highlightBuilder: (context, text, style) {
                                         return Container(
                                           padding: const EdgeInsets.symmetric(
