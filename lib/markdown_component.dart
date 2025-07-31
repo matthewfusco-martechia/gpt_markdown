@@ -870,7 +870,26 @@ class _LatexRenderingHelpers {
                       ),
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        child: buildLatexContent(latexData, style, isExpanded: true, workaround: workaround),
+                        child: (() {
+                          try {
+                            final processedLatex = workaround != null ? workaround(latexData) : latexData;
+                            return Math.tex(
+                              processedLatex,
+                              textStyle: TextStyle(
+                                color: style.color ?? Colors.white,
+                                fontSize: (style.fontSize ?? 16.0) * 1.3, // Expanded size
+                              ),
+                              mathStyle: MathStyle.display,
+                              settings: const TexParserSettings(strict: Strict.ignore),
+                            );
+                          } catch (e) {
+                            debugPrint('LaTeX rendering failed in expanded view: $e');
+                            return Text(
+                              'LaTeX Error: $e',
+                              style: TextStyle(color: Colors.red[300], fontSize: 14),
+                            );
+                          }
+                        })(),
                       ),
                     ),
                   ),
@@ -1047,17 +1066,6 @@ class LatexMathMultiLine extends BlockMd {
       final processedMath = workaround(mathText);
       debugPrint('After workaround: "$processedMath"');
       
-      // Try the original simple approach first
-      final testWidget = Math.tex(
-        processedMath,
-        textStyle: TextStyle(
-          color: config.style?.color ?? Colors.white,
-          fontSize: config.style?.fontSize ?? 16.0,
-        ),
-        mathStyle: MathStyle.display,
-        settings: const TexParserSettings(strict: Strict.ignore),
-      );
-      
       debugPrint('Original approach successful, wrapping in container');
       
       // If that works, wrap it in our styled container
@@ -1145,7 +1153,26 @@ class LatexMathMultiLine extends BlockMd {
               ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: testWidget, // Use the successfully rendered widget directly
+                child: (() {
+                  try {
+                    final processedMath = workaround(mathText);
+                    return Math.tex(
+                      processedMath,
+                      textStyle: TextStyle(
+                        color: config.style?.color ?? Colors.white,
+                        fontSize: config.style?.fontSize ?? 16.0,
+                      ),
+                      mathStyle: MathStyle.display,
+                      settings: const TexParserSettings(strict: Strict.ignore),
+                    );
+                  } catch (e) {
+                    debugPrint('LaTeX rendering failed in second container: $e');
+                    return Text(
+                      'LaTeX Error: $e',
+                      style: TextStyle(color: Colors.red[300], fontSize: 12),
+                    );
+                  }
+                })(),
               ),
             ),
           ],
@@ -1239,11 +1266,26 @@ class LatexMathMultiLine extends BlockMd {
               ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: _LatexRenderingHelpers.buildLatexContent(
-                  mathText,
-                  config.style ?? const TextStyle(),
-                  workaround: workaround,
-                ),
+                child: (() {
+                  try {
+                    final processedMath = workaround(mathText);
+                    return Math.tex(
+                      processedMath,
+                      textStyle: TextStyle(
+                        color: config.style?.color ?? Colors.white,
+                        fontSize: config.style?.fontSize ?? 16.0,
+                      ),
+                      mathStyle: MathStyle.display,
+                      settings: const TexParserSettings(strict: Strict.ignore),
+                    );
+                  } catch (e) {
+                    debugPrint('LaTeX rendering failed in second container: $e');
+                    return Text(
+                      'LaTeX Error: $e',
+                      style: TextStyle(color: Colors.red[300], fontSize: 12),
+                    );
+                  }
+                })(),
               ),
             ),
           ],
@@ -1321,12 +1363,27 @@ class LatexMath extends InlineMd {
       return WidgetSpan(
         alignment: PlaceholderAlignment.baseline,
         baseline: TextBaseline.alphabetic,
-        child: _LatexRenderingHelpers.buildLatexContent(
-          mathText,
-          config.style ?? const TextStyle(),
-          workaround: workaround,
-        ),
-      );  
+        child: (() {
+          try {
+            final processedMath = workaround(mathText);
+            return Math.tex(
+              processedMath,
+              textStyle: TextStyle(
+                color: config.style?.color ?? Colors.white,
+                fontSize: config.style?.fontSize ?? 16.0,
+              ),
+              mathStyle: MathStyle.text,
+              settings: const TexParserSettings(strict: Strict.ignore),
+            );
+          } catch (e) {
+            debugPrint('Inline LaTeX rendering failed: $e');
+            return Text(
+              'LaTeX Error',
+              style: TextStyle(color: Colors.red[300], fontSize: 12),
+            );
+          }
+        })(),
+      );
     }
   }
 }
