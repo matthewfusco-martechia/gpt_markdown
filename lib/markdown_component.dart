@@ -22,12 +22,13 @@ abstract class MarkdownComponent {
     ImageMd(),
     InlineCodeMd(),
     TableMd(),
+    // Parse LaTeX BEFORE markdown emphasis to avoid breaking math content
+    LatexMath(),
+    LatexMathMultiLine(),
     StrikeMd(),
     BoldMd(),
     ItalicMd(),
     UnderLineMd(),
-    LatexMath(),
-    LatexMathMultiLine(),
     HighlightedText(),
     SourceTag(),
   ];

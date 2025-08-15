@@ -137,6 +137,47 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
   }
 
   Widget _buildEnhancedMarkdown(String content) {
+    String _latexWorkaround(String tex) {
+      // Convert markdown bold/italic to LaTeX text variants inside math
+      String processed = tex;
+
+      // 1) Bold **...** -> \textbf{...}
+      processed = processed.replaceAllMapped(
+        RegExp(r"\*\*(.+?)\*\*", dotAll: true),
+        (m) => "\\textbf{${m[1] ?? ''}}",
+      );
+
+      // 2) Italic *...* -> \textit{...} (only single-star emphasis)
+      processed = processed.replaceAllMapped(
+        RegExp(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", dotAll: true),
+        (m) => "\\textit{${m[1] ?? ''}}",
+      );
+
+      // 3) Remaining asterisks are likely multiplication -> \times
+      processed = processed.replaceAllMapped(
+        RegExp(r"(?<!\\)\*"),
+        (m) => " \\times ",
+      );
+
+      // 4) Currency signs inside math must be escaped
+      processed = processed.replaceAllMapped(
+        RegExp(r"(?<!\\)\$"),
+        (m) => r"\$",
+      );
+
+      // 5) Normalize stray markdown underscores inside math to text italic
+      processed = processed.replaceAllMapped(
+        RegExp(r"__(.+?)__", dotAll: true),
+        (m) => "\\textbf{${m[1] ?? ''}}",
+      );
+      processed = processed.replaceAllMapped(
+        RegExp(r"_(.+?)_", dotAll: true),
+        (m) => "\\textit{${m[1] ?? ''}}",
+      );
+
+      return processed;
+    }
+
     return GptMarkdown(
       content,
       style: TextStyle(
@@ -254,6 +295,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
       // Enhanced LaTeX rendering is now built-in!
       // The package automatically provides professional dark UI with copy/share/expand
       useDollarSignsForLatex: true, // Support both \(...\) and $...$ syntax
+      latexWorkaround: _latexWorkaround,
     );
   }
 }
