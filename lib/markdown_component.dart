@@ -1284,7 +1284,7 @@ class LatexMath extends InlineMd {
   RegExp get exp => RegExp(
     [
       r"\\\((.*?)\\\)",
-      r"(?<!\\)\$((?:\\.|[^$])*?)\$(?!\\)",
+      r"(?<!\\)\$([^\s\n$]+)\$(?!\\)",
     ].join("|"),
     dotAll: true,
   );
