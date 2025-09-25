@@ -626,6 +626,17 @@ class ItalicMd extends InlineMd {
   ) {
     var match = exp.firstMatch(text.trim());
     var data = match?[1] ?? match?[2];
+    
+    // DEBUG: Check if italic is causing the text merging issue
+    if (match != null) {
+      print('🎨 ITALIC COMPONENT DEBUG:');
+      print('Input text: "$text"');
+      print('Match found: "${match.group(0)}"');
+      print('Extracted content: "$data"');
+      print('This might be causing text merging!');
+      print('========================');
+    }
+    
     var conf = config.copyWith(
       style: (config.style ?? const TextStyle()).copyWith(
         fontStyle: FontStyle.italic,
