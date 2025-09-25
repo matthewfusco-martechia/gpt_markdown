@@ -203,35 +203,31 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
 
   /// Automatically determine if math mode should be enabled based on content analysis
   bool _shouldAutoEnableMathMode(String content) {
-    // Extract all potential $...$ patterns (individual patterns only, no spanning across whitespace)
-    final dollarMatches = RegExp(r'\$([^$\s\n]+)\$').allMatches(content);
+    // FOR NOW: Be extremely conservative - only enable math mode for very obvious cases
+    // Check if content has clear LaTeX commands that are unambiguous
     
-    if (dollarMatches.isEmpty) return false; // No $...$ patterns found
-    
-    // Count clear mathematical vs currency patterns
-    int clearMathCount = 0;
-    int currencyCount = 0;
-    
-    for (final match in dollarMatches) {
-      final innerContent = match.group(1) ?? '';
-      
-      // Count as currency if it looks like currency
-      if (_looksLikeCurrency(innerContent)) {
-        currencyCount++;
-      }
-      // Only count as math if it has VERY clear LaTeX indicators
-      else if (_hasStrongLatexIndicators(innerContent)) {
-        clearMathCount++;
-      }
-      // If it's neither clear currency nor clear math, assume currency (safer)
-      else {
-        currencyCount++;
-      }
+    // Only enable if we find LaTeX commands like \frac, \sum, \alpha, etc.
+    if (content.contains(RegExp(r'\\[a-zA-Z]+'))) {
+      return true;
     }
     
-    // Only enable math mode if we have CLEAR math patterns AND no currency
-    // This is much more conservative - math must be obvious and dominant
-    return clearMathCount > 0 && currencyCount == 0;
+    // Only enable if we find Greek letters
+    if (content.contains(RegExp(r'[αβγδεζηθικλμνξοπρστυφχψω]'))) {
+      return true;
+    }
+    
+    // Only enable if we find clear math notation like superscripts/subscripts
+    if (content.contains(RegExp(r'[\^_{}]'))) {
+      return true;
+    }
+    
+    // Only enable if we find mathematical symbols
+    if (content.contains(RegExp(r'[≤≥≠∑∏∫]'))) {
+      return true;
+    }
+    
+    // For everything else (including all financial content), stay in currency mode
+    return false;
   }
 
   /// Check if content looks like currency (not math)
