@@ -1,7 +1,7 @@
 // Automatic FlutterFlow imports
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
+import 'package:ff_theme/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart'; // Imports other custom widgets
 import '/custom_code/actions/index.dart'; // Imports custom actions
@@ -201,6 +201,77 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
     );
   }
 
+  /// Automatically determine if math mode should be enabled based on content analysis
+  bool _shouldAutoEnableMathMode(String content) {
+    // Extract all potential $...$ patterns
+    final dollarMatches = RegExp(r'\$([^$]+)\$').allMatches(content);
+    
+    if (dollarMatches.isEmpty) return false; // No $...$ patterns found
+    
+    int mathScore = 0;
+    int currencyScore = 0;
+    
+    for (final match in dollarMatches) {
+      final innerContent = match.group(1) ?? '';
+      
+      // Score as currency
+      if (_looksLikeCurrency(innerContent)) {
+        currencyScore += 3; // Strong currency indicator
+      }
+      
+      // Score as math  
+      if (_hasLatexIndicators(innerContent)) {
+        mathScore += 5; // Very strong math indicator
+      } else if (_hasMathVariables(innerContent)) {
+        mathScore += 2; // Moderate math indicator
+      }
+    }
+    
+    // Decision: Enable math mode if math score is higher
+    return mathScore > currencyScore;
+  }
+
+  /// Check if content looks like currency (not math)
+  bool _looksLikeCurrency(String content) {
+    // Pure numbers with optional formatting
+    if (RegExp(r'^\d+(?:[,.]?\d+)*(?:\.\d{2})?[KMB]?$').hasMatch(content)) {
+      return true;
+    }
+    // Number ranges like "50-100" or "50 - 100"
+    if (RegExp(r'^\d+(?:[,.]?\d+)*(?:\s*-\s*\d+(?:[,.]?\d+)*)?$').hasMatch(content)) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Check if content has LaTeX mathematical indicators
+  bool _hasLatexIndicators(String content) {
+    // LaTeX commands like \alpha, \frac, etc.
+    if (content.contains(RegExp(r'\\[a-zA-Z]+'))) {
+      return true;
+    }
+    // Math symbols and operators with variables
+    if (content.contains(RegExp(r'[\^_{}]')) || 
+        content.contains(RegExp(r'[αβγδεζηθικλμνξοπρστυφχψω]'))) {
+      return true;
+    }
+    // Mathematical operators with variables
+    if (content.contains(RegExp(r'[+\-*/=<>≤≥≠∑∏∫]')) &&
+        content.contains(RegExp(r'[a-zA-Z]'))) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Check if content has mathematical variables (simple heuristic)
+  bool _hasMathVariables(String content) {
+    // Has variables and is not just currency abbreviation
+    return content.contains(RegExp(r'[a-zA-Z]')) && // Has letters
+           content.length > 1 && // Not just single letter
+           !RegExp(r'^\d+[KMB]?$').hasMatch(content) && // Not currency abbreviation
+           !RegExp(r'^[A-Z]+$').hasMatch(content); // Not just acronym
+  }
+
   Widget _buildEnhancedMarkdown(String content) {
     return GptMarkdown(
       content,
@@ -270,98 +341,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
           ),
         );
       },
-      // Custom code block styling with enhanced CodeField
-      codeBuilder: (context, language, code, closed) {
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with language badge and buttons
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Language badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2A2A2A),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        (language.isEmpty ? 'CODE' : language).toUpperCase(),
-                        style: const TextStyle(
-                          color: Color(0xFF8A8A8A),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    // Copy button
-                    GestureDetector(
-                      onTap: () async {
-                        await Clipboard.setData(ClipboardData(text: code));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Code copied to clipboard!'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(
-                          Icons.copy_outlined,
-                          color: Color(0xFFA0A0A0),
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Separator
-              Container(
-                height: 1,
-                color: const Color(0xFF2A2A2A),
-              ),
-              // Code content
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
-                ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: _buildSyntaxHighlightedCode(code, language, widget.fontSize),
-                  ),
-              ),
-            ],
-          ),
-        );
-      },
+      // Custom code block styling removed - now uses enhanced CodeField
       // Custom link styling
       linkBuilder: (context, label, url, style) {
         return GestureDetector(
@@ -428,97 +408,10 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
         );
       },
 
-      // Do NOT pre-convert single-dollar sections to LaTeX.
-      // We handle $...$ with a safer heuristic inside LatexMath to avoid
-      // mis-parsing currency like $37 or $59,000 as math.
-      useDollarSignsForLatex: false,
-    );
-  }
-
-  Widget _buildSyntaxHighlightedCode(String code, String language, double fontSize) {
-    // Define syntax highlighting colors (matching your CodeField theme)
-    const Map<String, Color> syntaxColors = {
-      'keyword': Color(0xFFC678DD),      // Purple
-      'string': Color(0xFF98C379),       // Green  
-      'number': Color(0xFFD19A66),       // Orange
-      'comment': Color(0xFF5C6370),      // Gray
-      'function': Color(0xFF61AFEF),     // Blue
-      'variable': Color(0xFFE06C75),     // Red
-      'type': Color(0xFF61AFEF),         // Blue
-      'operator': Color(0xFFABB2BF),     // Light gray
-    };
-
-    // Simple regex patterns for common syntax elements
-    final Map<String, RegExp> patterns = {
-      'comment': RegExp(r'//.*$|/\*[\s\S]*?\*/|#.*$', multiLine: true),
-      'string': RegExp(r'"[^"]*"|\'[^\']*\'|`[^`]*`'),
-      'number': RegExp(r'\b\d+\.?\d*\b'),
-      'keyword': RegExp(r'\b(var|let|const|function|class|if|else|for|while|return|import|export|from|async|await|try|catch|finally|throw|new|this|super|extends|implements|interface|enum|type|public|private|protected|static|abstract|final|override|void|int|string|bool|double|float|char|long|short|byte)\b'),
-      'function': RegExp(r'\b\w+(?=\s*\()'),
-      'operator': RegExp(r'[+\-*/=<>!&|^%~]|&&|\|\||==|!=|<=|>=|<<|>>|\+\+|--|=>'),
-    };
-
-    List<TextSpan> spans = [];
-    String remaining = code;
-
-    while (remaining.isNotEmpty) {
-      Match? earliestMatch;
-      String? matchType;
-      
-      // Find the earliest match among all patterns
-      for (var entry in patterns.entries) {
-        final match = entry.value.firstMatch(remaining);
-        if (match != null && (earliestMatch == null || match.start < earliestMatch.start)) {
-          earliestMatch = match;
-          matchType = entry.key;
-        }
-      }
-
-      if (earliestMatch != null && matchType != null) {
-        // Add text before the match
-        if (earliestMatch.start > 0) {
-          spans.add(TextSpan(
-            text: remaining.substring(0, earliestMatch.start),
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: 'JetBrainsMono',
-              fontSize: fontSize,
-              height: 1.6,
-            ),
-          ));
-        }
-
-        // Add the highlighted match
-        spans.add(TextSpan(
-          text: earliestMatch.group(0)!,
-          style: TextStyle(
-            color: syntaxColors[matchType] ?? Colors.white,
-            fontFamily: 'JetBrainsMono',
-            fontSize: fontSize,
-            height: 1.6,
-            fontStyle: matchType == 'comment' ? FontStyle.italic : FontStyle.normal,
-          ),
-        ));
-
-        // Update remaining text
-        remaining = remaining.substring(earliestMatch.end);
-      } else {
-        // No more matches, add remaining text
-        spans.add(TextSpan(
-          text: remaining,
-          style: TextStyle(
-            color: Colors.white,
-            fontFamily: 'JetBrainsMono',
-            fontSize: fontSize,
-            height: 1.6,
-          ),
-        ));
-        break;
-      }
-    }
-
-    return RichText(
-      text: TextSpan(children: spans),
+      // Automatically detect if content needs math mode or currency mode
+      // Smart detection analyzes $...$ patterns to determine the best mode
+      // Math mode + smart detection protects currency in mixed content
+      useDollarSignsForLatex: _shouldAutoEnableMathMode(content),
     );
   }
 }

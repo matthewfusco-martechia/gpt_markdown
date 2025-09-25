@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:gpt_markdown/custom_widgets/markdown_config.dart';
 
 import 'package:flutter/services.dart';
@@ -15,6 +16,7 @@ import 'dart:io';
 import 'custom_widgets/code_field.dart';
 import 'custom_widgets/indent_widget.dart';
 import 'custom_widgets/link_button.dart';
+import 'custom_widgets/selectable_adapter.dart';
 
 part 'theme.dart';
 part 'markdown_component.dart';

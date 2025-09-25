@@ -460,7 +460,7 @@ class OrderedList extends BlockMd {
           no: "$no.",
           textDirection: config.textDirection,
           style: (config.style ?? const TextStyle()).copyWith(
-            fontWeight: FontWeight.w100,
+            fontWeight: FontWeight.w400,
           ),
           child: child,
         );
@@ -1209,7 +1209,7 @@ class UnderLineMd extends InlineMd {
 
 class LatexMathMultiLine extends BlockMd {
   @override
-  String get expString => (r"\ *\\\[((?:.)*?)\\\]|(\ *\\begin.*?\\end{.*?})|(?<!\\)\$\$((?:.)*?)\$\$(?!\\)");
+  String get expString => (r"\ *\\\[((?:.)*?)\\\]|(\ *\\begin.*?\\end{.*?})");
   @override
   RegExp get exp => RegExp(expString, dotAll: true, multiLine: true);
 
@@ -1220,37 +1220,61 @@ class LatexMathMultiLine extends BlockMd {
     final GptMarkdownConfig config,
   ) {
     var p0 = exp.firstMatch(text.trim());
-    String mathText = p0?[1] ?? p0?[2] ?? p0?[3] ?? '';
+    String mathText = p0?[1] ?? p0?[2] ?? '';
     var workaround = config.latexWorkaround ?? (String tex) => tex;
 
-    // If custom latexBuilder is provided, use it
-    if (config.latexBuilder != null) {
-      return config.latexBuilder!(
-        context,
-        workaround(mathText),
-        config.style ?? const TextStyle(),
-        false,
-      );
-    }
-
-    // Simple native LaTeX rendering
-    try {
-      final processedMath = workaround(mathText);
-      return Math.tex(
-        processedMath,
-        textStyle: TextStyle(
-          color: config.style?.color ?? Colors.white,
-          fontSize: config.style?.fontSize ?? 16.0,
-        ),
-        mathStyle: MathStyle.display,
-        settings: const TexParserSettings(strict: Strict.ignore),
-      );
-    } catch (e) {
-      return Text(
-        'LaTeX Error: $e',
-        style: TextStyle(color: Colors.red[300], fontSize: 12),
-      );
-    }
+    // Enhanced LaTeX builder with better options
+    var builder =
+        config.latexBuilder ??
+        (BuildContext context, String tex, TextStyle textStyle, bool inline) =>
+            SelectableAdapter(
+              selectedText: tex,
+              child: Math.tex(
+                tex,
+                textStyle: textStyle,
+                mathStyle: MathStyle.display,
+                textScaleFactor: 1,
+                settings: const TexParserSettings(strict: Strict.ignore),
+                options: MathOptions(
+                  sizeUnderTextStyle: MathSize.large,
+                  color:
+                      config.style?.color ??
+                      Theme.of(context).colorScheme.onSurface,
+                  fontSize:
+                      config.style?.fontSize ??
+                      Theme.of(context).textTheme.bodyMedium?.fontSize,
+                  mathFontOptions: FontOptions(
+                    fontFamily: "Main",
+                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
+                    fontShape: FontStyle.normal,
+                  ),
+                  textFontOptions: FontOptions(
+                    fontFamily: "Main",
+                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
+                    fontShape: FontStyle.normal,
+                  ),
+                  style: MathStyle.display,
+                ),
+                onErrorFallback: (err) {
+                  return Text(
+                    workaround(mathText),
+                    textDirection: config.textDirection,
+                    style: textStyle.copyWith(
+                      color:
+                          (!kDebugMode)
+                              ? null
+                              : Theme.of(context).colorScheme.error,
+                    ),
+                  );
+                },
+              ),
+            );
+    return builder(
+      context,
+      workaround(mathText),
+      config.style ?? const TextStyle(),
+      false,
+    );
   }
 }
 
@@ -1265,6 +1289,56 @@ class LatexMath extends InlineMd {
     dotAll: true,
   );
 
+  /// Check if content looks like currency (not math)
+  bool _looksLikeCurrency(String content) {
+    // Pure numbers with optional formatting
+    if (RegExp(r'^\d+(?:[,.]?\d+)*(?:\.\d{2})?[KMB]?$').hasMatch(content)) {
+      return true;
+    }
+    // Number ranges like "50-100" or "50 - 100"
+    if (RegExp(r'^\d+(?:[,.]?\d+)*(?:\s*-\s*\d+(?:[,.]?\d+)*)?$').hasMatch(content)) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Check if content has LaTeX mathematical indicators
+  bool _hasLatexIndicators(String content) {
+    // LaTeX commands like \alpha, \frac, etc.
+    if (content.contains(RegExp(r'\\[a-zA-Z]+'))) {
+      return true;
+    }
+    // Math symbols and operators with variables
+    if (content.contains(RegExp(r'[\^_{}]')) || 
+        content.contains(RegExp(r'[αβγδεζηθικλμνξοπρστυφχψω]'))) {
+      return true;
+    }
+    // Mathematical operators with variables
+    if (content.contains(RegExp(r'[+\-*/=<>≤≥≠∑∏∫]')) &&
+        content.contains(RegExp(r'[a-zA-Z]'))) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Smart detection: determine if dollar-sign content should be treated as LaTeX
+  bool _shouldProcessAsLatex(String content, GptMarkdownConfig config) {
+    // Always process \(...\) format
+    if (content.isEmpty) return false;
+    
+    // If dollar signs are disabled, don't process $ patterns
+    if (!config.useDollarSignsForLatex) return false;
+    
+    // If it looks like currency, don't process as LaTeX
+    if (_looksLikeCurrency(content)) return false;
+    
+    // If it has clear LaTeX indicators, process as LaTeX
+    if (_hasLatexIndicators(content)) return true;
+    
+    // Default: if dollar signs are enabled and no currency detected, treat as LaTeX
+    return true;
+  }
+
   @override
   InlineSpan span(
     BuildContext context,
@@ -1273,50 +1347,75 @@ class LatexMath extends InlineMd {
   ) {
     var p0 = exp.firstMatch(text.trim());
     String mathText = p0?[1]?.toString() ?? p0?[2]?.toString() ?? "";
+    
+    // Smart detection: check if this should be processed as LaTeX
+    bool isLatexPattern = p0?[1] != null; // \(...\) format
+    bool isDollarPattern = p0?[2] != null; // $...$ format
+    
+    if (isDollarPattern && !_shouldProcessAsLatex(mathText, config)) {
+      // Return original text unchanged for currency/non-math content
+      return TextSpan(text: text, style: config.style);
+    }
+    
     var workaround = config.latexWorkaround ?? (String tex) => tex;
-
-    // If custom latexBuilder is provided, use it
-    if (config.latexBuilder != null) {
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.baseline,
-        baseline: TextBaseline.alphabetic,
-        child: config.latexBuilder!(
-          context,
-          workaround(mathText),
-          config.style ?? const TextStyle(),
-          true,
-        ),
-      );
-    }
-
-    // Simple inline LaTeX rendering
-    try {
-      final processedMath = workaround(mathText);
-      final result = Math.tex(
-        processedMath,
-        textStyle: TextStyle(
-          color: config.style?.color ?? Colors.white,
-          fontSize: config.style?.fontSize ?? 16.0,
-        ),
-        mathStyle: MathStyle.text,
-        settings: const TexParserSettings(strict: Strict.ignore),
-      );
-      
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.baseline,
-        baseline: TextBaseline.alphabetic,
-        child: result,
-      );
-    } catch (e) {
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.baseline,
-        baseline: TextBaseline.alphabetic,
-        child: Text(
-          'LaTeX Error',
-          style: TextStyle(color: Colors.red[300], fontSize: 12),
-        ),
-      );
-    }
+    
+    // Enhanced LaTeX builder with better options
+    var builder =
+        config.latexBuilder ??
+        (BuildContext context, String tex, TextStyle textStyle, bool inline) =>
+            SelectableAdapter(
+              selectedText: tex,
+              child: Math.tex(
+                tex,
+                textStyle: textStyle,
+                mathStyle: MathStyle.text,
+                textScaleFactor: 1,
+                settings: const TexParserSettings(strict: Strict.ignore),
+                options: MathOptions(
+                  sizeUnderTextStyle: MathSize.large,
+                  color:
+                      config.style?.color ??
+                      Theme.of(context).colorScheme.onSurface,
+                  fontSize:
+                      config.style?.fontSize ??
+                      Theme.of(context).textTheme.bodyMedium?.fontSize,
+                  mathFontOptions: FontOptions(
+                    fontFamily: "Main",
+                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
+                    fontShape: FontStyle.normal,
+                  ),
+                  textFontOptions: FontOptions(
+                    fontFamily: "Main",
+                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
+                    fontShape: FontStyle.normal,
+                  ),
+                  style: MathStyle.text,
+                ),
+                onErrorFallback: (err) {
+                  return Text(
+                    workaround(mathText),
+                    textDirection: config.textDirection,
+                    style: textStyle.copyWith(
+                      color:
+                          (!kDebugMode)
+                              ? null
+                              : Theme.of(context).colorScheme.error,
+                    ),
+                  );
+                },
+              ),
+            );
+    
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: builder(
+        context,
+        workaround(mathText),
+        config.style ?? const TextStyle(),
+        true,
+      ),
+    );
   }
 }
 
