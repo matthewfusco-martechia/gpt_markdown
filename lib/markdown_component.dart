@@ -1322,20 +1322,22 @@ class LatexMath extends InlineMd {
   }
 
   /// Smart detection: determine if dollar-sign content should be treated as LaTeX
-  bool _shouldProcessAsLatex(String content, GptMarkdownConfig config) {
+  bool _shouldProcessAsLatex(String content, bool isDollarPattern) {
     // Always process \(...\) format
     if (content.isEmpty) return false;
     
-    // If dollar signs are disabled, don't process $ patterns
-    if (!config.useDollarSignsForLatex) return false;
+    // Always process \(...\) patterns regardless of settings
+    if (!isDollarPattern) return true;
     
+    // For $...$ patterns, use smart detection
     // If it looks like currency, don't process as LaTeX
     if (_looksLikeCurrency(content)) return false;
     
     // If it has clear LaTeX indicators, process as LaTeX
     if (_hasLatexIndicators(content)) return true;
     
-    // Default: if dollar signs are enabled and no currency detected, treat as LaTeX
+    // For ambiguous cases in $...$ patterns, default to LaTeX
+    // (This only runs when auto-detection has enabled dollar signs)
     return true;
   }
 
@@ -1352,7 +1354,7 @@ class LatexMath extends InlineMd {
     bool isLatexPattern = p0?[1] != null; // \(...\) format
     bool isDollarPattern = p0?[2] != null; // $...$ format
     
-    if (isDollarPattern && !_shouldProcessAsLatex(mathText, config)) {
+    if (!_shouldProcessAsLatex(mathText, isDollarPattern)) {
       // Return original text unchanged for currency/non-math content
       return TextSpan(text: text, style: config.style);
     }
