@@ -1350,6 +1350,18 @@ class LatexMath extends InlineMd {
     var p0 = exp.firstMatch(text.trim());
     String mathText = p0?[1]?.toString() ?? p0?[2]?.toString() ?? "";
     
+    // DEBUG: Print what the LaTeX component is actually finding
+    if (p0 != null) {
+      print('🔍 LATEX COMPONENT DEBUG:');
+      print('Input text: "$text"');
+      print('Match found: "${p0.group(0)}"');
+      print('Extracted content: "$mathText"');
+      print('Is LaTeX pattern: ${p0?[1] != null}');
+      print('Is Dollar pattern: ${p0?[2] != null}');
+      print('Should process as LaTeX: ${_shouldProcessAsLatex(mathText, p0?[2] != null)}');
+      print('========================');
+    }
+    
     // Smart detection: check if this should be processed as LaTeX
     bool isLatexPattern = p0?[1] != null; // \(...\) format
     bool isDollarPattern = p0?[2] != null; // $...$ format

@@ -203,20 +203,30 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
 
   /// Automatically determine if math mode should be enabled based on content analysis
   bool _shouldAutoEnableMathMode(String content) {
-    // ULTRA CONSERVATIVE: Disable math mode completely for now to debug
-    // This will force all content to use currency mode
+    // FOR NOW: Be extremely conservative - only enable math mode for very obvious cases
+    // Check if content has clear LaTeX commands that are unambiguous
     
-    // DEBUG: Print what we're analyzing
-    print('=== AUTO-DETECTION DEBUG ===');
-    print('Content length: ${content.length}');
-    print('Contains LaTeX commands: ${content.contains(RegExp(r'\\[a-zA-Z]+'))}');
-    print('Contains Greek letters: ${content.contains(RegExp(r'[αβγδεζηθικλμνξοπρστυφχψω]'))}');
-    print('Contains math notation: ${content.contains(RegExp(r'[\^_{}]'))}');
-    print('Contains math symbols: ${content.contains(RegExp(r'[≤≥≠∑∏∫]'))}');
-    print('Decision: FORCED FALSE (debugging)');
-    print('============================');
+    // Only enable if we find LaTeX commands like \frac, \sum, \alpha, etc.
+    if (content.contains(RegExp(r'\\[a-zA-Z]+'))) {
+      return true;
+    }
     
-    // FORCE CURRENCY MODE - completely disable math mode for debugging
+    // Only enable if we find Greek letters
+    if (content.contains(RegExp(r'[αβγδεζηθικλμνξοπρστυφχψω]'))) {
+      return true;
+    }
+    
+    // Only enable if we find clear math notation like superscripts/subscripts
+    if (content.contains(RegExp(r'[\^_{}]'))) {
+      return true;
+    }
+    
+    // Only enable if we find mathematical symbols
+    if (content.contains(RegExp(r'[≤≥≠∑∏∫]'))) {
+      return true;
+    }
+    
+    // For everything else (including all financial content), stay in currency mode
     return false;
   }
 
@@ -412,10 +422,9 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
         );
       },
 
-      // Automatically detect if content needs math mode or currency mode
-      // Smart detection analyzes $...$ patterns to determine the best mode
-      // Math mode + smart detection protects currency in mixed content
-      useDollarSignsForLatex: _shouldAutoEnableMathMode(content),
+      // DEBUG: Force disable ALL dollar sign processing to isolate the issue
+      // This will prevent any $...$ patterns from being processed as LaTeX
+      useDollarSignsForLatex: false,
     );
   }
 }
