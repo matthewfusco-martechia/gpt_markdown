@@ -203,32 +203,35 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
 
   /// Automatically determine if math mode should be enabled based on content analysis
   bool _shouldAutoEnableMathMode(String content) {
-    // Extract all potential $...$ patterns
-    final dollarMatches = RegExp(r'\$([^$]+)\$').allMatches(content);
+    // Extract all potential $...$ patterns (individual patterns only, no spanning across whitespace)
+    final dollarMatches = RegExp(r'\$([^$\s\n]+)\$').allMatches(content);
     
     if (dollarMatches.isEmpty) return false; // No $...$ patterns found
     
-    int mathScore = 0;
-    int currencyScore = 0;
+    // Count clear mathematical vs currency patterns
+    int clearMathCount = 0;
+    int currencyCount = 0;
     
     for (final match in dollarMatches) {
       final innerContent = match.group(1) ?? '';
       
-      // Score as currency
+      // Count as currency if it looks like currency
       if (_looksLikeCurrency(innerContent)) {
-        currencyScore += 3; // Strong currency indicator
+        currencyCount++;
       }
-      
-      // Score as math  
-      if (_hasLatexIndicators(innerContent)) {
-        mathScore += 5; // Very strong math indicator
-      } else if (_hasMathVariables(innerContent)) {
-        mathScore += 2; // Moderate math indicator
+      // Only count as math if it has VERY clear LaTeX indicators
+      else if (_hasStrongLatexIndicators(innerContent)) {
+        clearMathCount++;
+      }
+      // If it's neither clear currency nor clear math, assume currency (safer)
+      else {
+        currencyCount++;
       }
     }
     
-    // Decision: Enable math mode if math score is higher
-    return mathScore > currencyScore;
+    // Only enable math mode if we have CLEAR math patterns AND no currency
+    // This is much more conservative - math must be obvious and dominant
+    return clearMathCount > 0 && currencyCount == 0;
   }
 
   /// Check if content looks like currency (not math)
@@ -241,26 +244,41 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
     if (RegExp(r'^\d+(?:[,.]?\d+)*(?:\s*-\s*\d+(?:[,.]?\d+)*)?$').hasMatch(content)) {
       return true;
     }
+    // Numbers with common currency context words
+    if (RegExp(r'^\d+(?:[,.]?\d+)*(?:\.\d{2})?\s*(?:per|each|total|worth|spent|cost|price|value)', caseSensitive: false).hasMatch(content)) {
+      return true;
+    }
+    // Decimal numbers (likely currency)
+    if (RegExp(r'^\d+\.\d{2}$').hasMatch(content)) {
+      return true;
+    }
     return false;
   }
 
-  /// Check if content has LaTeX mathematical indicators
-  bool _hasLatexIndicators(String content) {
-    // LaTeX commands like \alpha, \frac, etc.
+  /// Check if content has VERY strong/obvious LaTeX mathematical indicators
+  bool _hasStrongLatexIndicators(String content) {
+    // LaTeX commands like \alpha, \frac, \sum, etc. - VERY obvious math
     if (content.contains(RegExp(r'\\[a-zA-Z]+'))) {
       return true;
     }
-    // Math symbols and operators with variables
-    if (content.contains(RegExp(r'[\^_{}]')) || 
-        content.contains(RegExp(r'[αβγδεζηθικλμνξοπρστυφχψω]'))) {
+    // Greek letters - VERY obvious math
+    if (content.contains(RegExp(r'[αβγδεζηθικλμνξοπρστυφχψω]'))) {
       return true;
     }
-    // Mathematical operators with variables
-    if (content.contains(RegExp(r'[+\-*/=<>≤≥≠∑∏∫]')) &&
-        content.contains(RegExp(r'[a-zA-Z]'))) {
+    // Math notation like superscripts, subscripts, fractions - VERY obvious
+    if (content.contains(RegExp(r'[\^_{}]'))) {
+      return true;
+    }
+    // Mathematical symbols - VERY obvious math
+    if (content.contains(RegExp(r'[≤≥≠∑∏∫]'))) {
       return true;
     }
     return false;
+  }
+
+  /// Check if content has LaTeX mathematical indicators (legacy - keeping for compatibility)
+  bool _hasLatexIndicators(String content) {
+    return _hasStrongLatexIndicators(content);
   }
 
   /// Check if content has mathematical variables (simple heuristic)
