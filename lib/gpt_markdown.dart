@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
+import 'dart:io' show Platform;
 import 'package:gpt_markdown/custom_widgets/markdown_config.dart';
 
 import 'package:flutter/services.dart';
@@ -261,27 +263,75 @@ class GptMarkdown extends StatelessWidget {
 
     // Wrap with SelectionArea if selectable is true
     if (selectable) {
-      Widget selectableWidget = SelectionArea(
+      return _CustomSelectableArea(
+        selectionColor: selectionColor,
         child: markdownWidget,
       );
-
-      // Apply custom selection color if provided
-      if (selectionColor != null) {
-        selectableWidget = Theme(
-          data: Theme.of(context).copyWith(
-            textSelectionTheme: TextSelectionThemeData(
-              selectionColor: selectionColor!.withOpacity(0.3),
-              selectionHandleColor: selectionColor!,
-            ),
-          ),
-          child: selectableWidget,
-        );
-      }
-
-      return selectableWidget;
     }
 
     return markdownWidget;
+  }
+}
+
+/// Custom SelectionArea that properly handles iOS selection handle colors
+class _CustomSelectableArea extends StatelessWidget {
+  const _CustomSelectableArea({
+    required this.child,
+    this.selectionColor,
+  });
+
+  final Widget child;
+  final Color? selectionColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (selectionColor == null) {
+      return SelectionArea(child: child);
+    }
+
+    // For iOS, we need to wrap with CupertinoTheme to override selection handles
+    if (!kIsWeb && Platform.isIOS) {
+      return CupertinoTheme(
+        data: CupertinoTheme.of(context).copyWith(
+          primaryColor: selectionColor!,
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            primaryColor: selectionColor!,
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: selectionColor!,
+              secondary: selectionColor!,
+            ),
+            textSelectionTheme: TextSelectionThemeData(
+              selectionColor: selectionColor!.withOpacity(0.3),
+              selectionHandleColor: selectionColor!,
+              cursorColor: selectionColor!,
+            ),
+            cupertinoOverrideTheme: CupertinoThemeData(
+              primaryColor: selectionColor!,
+            ),
+          ),
+          child: SelectionArea(child: child),
+        ),
+      );
+    }
+
+    // For Android and other platforms
+    return Theme(
+      data: Theme.of(context).copyWith(
+        primaryColor: selectionColor!,
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+          primary: selectionColor!,
+          secondary: selectionColor!,
+        ),
+        textSelectionTheme: TextSelectionThemeData(
+          selectionColor: selectionColor!.withOpacity(0.3),
+          selectionHandleColor: selectionColor!,
+          cursorColor: selectionColor!,
+        ),
+      ),
+      child: SelectionArea(child: child),
+    );
   }
 }
 
