@@ -55,6 +55,8 @@ class GptMarkdown extends StatelessWidget {
     this.h5Style,
     this.h6Style,
     this.useDollarSignsForLatex = false,
+    this.selectable = true,
+    this.selectionColor,
   });
 
   /// The direction of the text.
@@ -132,6 +134,12 @@ class GptMarkdown extends StatelessWidget {
 
   /// Whether to use dollar signs for LaTeX.
   final bool useDollarSignsForLatex;
+
+  /// Whether to make all text selectable.
+  final bool selectable;
+
+  /// The color used for text selection highlight.
+  final Color? selectionColor;
 
   /// The table builder.
   final TableBuilder? tableBuilder;
@@ -214,7 +222,7 @@ class GptMarkdown extends StatelessWidget {
       }
     }
     // tex = _removeExtraLinesInsideBlockLatex(tex);
-    return ClipRRect(
+    Widget markdownWidget = ClipRRect(
       child: MdWidget(
         context,
         tex,
@@ -250,5 +258,30 @@ class GptMarkdown extends StatelessWidget {
         ),
       ),
     );
+
+    // Wrap with SelectionArea if selectable is true
+    if (selectable) {
+      Widget selectableWidget = SelectionArea(
+        child: markdownWidget,
+      );
+
+      // Apply custom selection color if provided
+      if (selectionColor != null) {
+        selectableWidget = Theme(
+          data: Theme.of(context).copyWith(
+            textSelectionTheme: TextSelectionThemeData(
+              selectionColor: selectionColor!.withOpacity(0.3),
+              selectionHandleColor: selectionColor!,
+            ),
+          ),
+          child: selectableWidget,
+        );
+      }
+
+      return selectableWidget;
+    }
+
+    return markdownWidget;
   }
 }
+

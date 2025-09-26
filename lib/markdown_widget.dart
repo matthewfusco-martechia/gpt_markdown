@@ -44,6 +44,8 @@ class MarkdownWidget extends StatefulWidget {
     required this.iconFillColor,
     required this.iconBorderColor,
     required this.linkContainerColor,
+    this.selectable = true,
+    this.selectionColor,
   });
 
   final double? width;
@@ -54,6 +56,8 @@ class MarkdownWidget extends StatefulWidget {
   final Color iconFillColor;
   final Color iconBorderColor;
   final Color linkContainerColor;
+  final bool selectable;
+  final Color? selectionColor;
 
   @override
   State<MarkdownWidget> createState() => _MarkdownWidgetState();
@@ -425,6 +429,10 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
       // DEBUG: Force disable ALL dollar sign processing to isolate the issue
       // This will prevent any $...$ patterns from being processed as LaTeX
       useDollarSignsForLatex: false,
+      
+      // Selection parameters
+      selectable: widget.selectable,
+      selectionColor: widget.selectionColor,
     );
   }
 }

@@ -51,10 +51,24 @@ abstract class MarkdownComponent {
       multiLine: true,
       dotAll: true,
     );
+    // DEBUG: Log what text is being processed
+    if (text.contains('24') || text.contains('shares') || text.contains('*')) {
+      print('🔥 CORE MARKDOWN DEBUG:');
+      print('Processing text: "$text"');
+      print('Combined regex pattern count: ${components.length}');
+      print('Include global components: $includeGlobalComponents');
+    }
+    
     text.splitMapJoin(
       combinedRegex,
       onMatch: (p0) {
         String element = p0[0] ?? "";
+        
+        // DEBUG: Log matches for problematic content
+        if (text.contains('24') || text.contains('shares') || text.contains('*')) {
+          print('  📍 MATCH found: "$element"');
+        }
+        
         for (var each in components) {
           var p = each.exp.pattern;
           var exp = RegExp(
@@ -63,6 +77,9 @@ abstract class MarkdownComponent {
             dotAll: each.exp.isDotAll,
           );
           if (exp.hasMatch(element)) {
+            if (text.contains('24') || text.contains('shares') || text.contains('*')) {
+              print('    ✅ Component "${each.runtimeType}" processing: "$element"');
+            }
             spans.add(each.span(context, element, config));
             return "";
           }
@@ -73,6 +90,12 @@ abstract class MarkdownComponent {
         if (p0.isEmpty) {
           return "";
         }
+        
+        // DEBUG: Log non-matches for problematic content
+        if ((text.contains('24') || text.contains('shares') || text.contains('*')) && p0.isNotEmpty) {
+          print('  📝 NON-MATCH text: "$p0"');
+        }
+        
         if (includeGlobalComponents) {
           var newSpans = generate(context, p0, config.copyWith(), false);
           spans.addAll(newSpans);
