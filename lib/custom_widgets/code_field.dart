@@ -194,8 +194,8 @@ class CodeField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MediaQuery.withClampedTextScaleFactor(
-      maxScaleFactor: 1.0,
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
@@ -313,8 +313,8 @@ class CodeField extends StatelessWidget {
           maxChildSize: 0.95,
           expand: false,
           builder: (_, controller) {
-            return MediaQuery.withClampedTextScaleFactor(
-              maxScaleFactor: 1.0,
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
               child: Column(
                 children: [
                   // Modal Header

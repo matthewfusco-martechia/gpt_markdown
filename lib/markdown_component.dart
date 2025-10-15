@@ -776,8 +776,8 @@ class TableMd extends BlockMd {
     final tableData = _parseTableData(text);
     if (tableData.isEmpty) return const SizedBox.shrink();
 
-    return MediaQuery.withClampedTextScaleFactor(
-      maxScaleFactor: 1.0,
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
@@ -923,8 +923,8 @@ class TableMd extends BlockMd {
           maxChildSize: 0.95,
           expand: false,
           builder: (_, controller) {
-            return MediaQuery.withClampedTextScaleFactor(
-              maxScaleFactor: 1.0,
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
               child: Column(
                 children: [
                   // Modal Header
