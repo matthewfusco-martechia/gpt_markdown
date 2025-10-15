@@ -780,14 +780,15 @@ class TableMd extends BlockMd {
       data: MediaQuery.of(context).copyWith(
         textScaler: const TextScaler.linear(1.0),
       ),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-        ),
-        child: Column(
+      child: Builder(
+        builder: (context) => Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
+          ),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header with table badge and buttons
@@ -867,6 +868,7 @@ class TableMd extends BlockMd {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -929,7 +931,8 @@ class TableMd extends BlockMd {
               data: MediaQuery.of(context).copyWith(
                 textScaler: const TextScaler.linear(1.0),
               ),
-              child: Column(
+              child: Builder(
+                builder: (context) => Column(
                 children: [
                   // Modal Header
                   Container(
@@ -1011,6 +1014,7 @@ class TableMd extends BlockMd {
                     ),
                   ),
                 ],
+              ),
               ),
             );
           },
