@@ -194,101 +194,104 @@ class CodeField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with language badge and buttons
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1A1A1A),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+    return MediaQuery.withClampedTextScaleFactor(
+      maxScaleFactor: 1.0,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with language badge and buttons
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                // Language badge
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A2A),
+              child: Row(
+                children: [
+                  // Language badge
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A2A2A),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      (name.isEmpty ? 'CODE' : name).toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF8A8A8A),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Expand button
+                  InkWell(
+                    onTap: () => _showExpandedView(context),
                     borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    (name.isEmpty ? 'CODE' : name).toUpperCase(),
-                    style: const TextStyle(
-                      color: Color(0xFF8A8A8A),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.open_in_full,
+                        color: Color(0xFFA0A0A0),
+                        size: 18,
+                      ),
                     ),
                   ),
-                ),
-                const Spacer(),
-                // Expand button
-                InkWell(
-                  onTap: () => _showExpandedView(context),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: const Icon(
-                      Icons.open_in_full,
-                      color: Color(0xFFA0A0A0),
-                      size: 18,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Share button
-                _ShareButton(code: codes, language: name),
-                const SizedBox(width: 12),
-                // Copy button
-                _CopyButton(code: codes),
-              ],
-            ),
-          ),
-          // Separator
-          Container(
-            height: 1,
-            color: const Color(0xFF2A2A2A),
-          ),
-          // Code content
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1A1A1A),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
+                  const SizedBox(width: 12),
+                  // Share button
+                  _ShareButton(code: codes, language: name),
+                  const SizedBox(width: 12),
+                  // Copy button
+                  _CopyButton(code: codes),
+                ],
               ),
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: HighlightView(
-                codes,
-                language: name.toLowerCase(),
-                theme: _getSyntaxTheme(),
-                textStyle: TextStyle(
-                  fontFamily: 'JetBrainsMono',
-                  fontSize: fontSize,
-                  height: 1.6,
-                  color: Colors.white,
+            // Separator
+            Container(
+              height: 1,
+              color: const Color(0xFF2A2A2A),
+            ),
+            // Code content
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: HighlightView(
+                  codes,
+                  language: name.toLowerCase(),
+                  theme: _getSyntaxTheme(),
+                  textStyle: TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontSize: fontSize,
+                    height: 1.6,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -310,98 +313,101 @@ class CodeField extends StatelessWidget {
           maxChildSize: 0.95,
           expand: false,
           builder: (_, controller) {
-            return Column(
-              children: [
-                // Modal Header
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1A1A1A),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      // Language badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2A2A2A),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          (name.isEmpty ? 'CODE' : name).toUpperCase(),
-                          style: const TextStyle(
-                            color: Color(0xFF8A8A8A),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      // Close button
-                      InkWell(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.of(modalContext).pop();
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(
-                            Icons.close,
-                            color: Color(0xFFA0A0A0),
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Share button
-                      _ShareButton(code: codes, language: name),
-                      const SizedBox(width: 12),
-                      // Copy button
-                      _CopyButton(code: codes),
-                    ],
-                  ),
-                ),
-                Container(height: 1, color: const Color(0xFF2A2A2A)),
-                // Modal Content
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+            return MediaQuery.withClampedTextScaleFactor(
+              maxScaleFactor: 1.0,
+              child: Column(
+                children: [
+                  // Modal Header
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     decoration: const BoxDecoration(
                       color: Color(0xFF1A1A1A),
                       borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
                       ),
                     ),
-                    child: SingleChildScrollView(
-                      controller: controller,
+                    child: Row(
+                      children: [
+                        // Language badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2A2A2A),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            (name.isEmpty ? 'CODE' : name).toUpperCase(),
+                            style: const TextStyle(
+                              color: Color(0xFF8A8A8A),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        // Close button
+                        InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.of(modalContext).pop();
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: const Icon(
+                              Icons.close,
+                              color: Color(0xFFA0A0A0),
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Share button
+                        _ShareButton(code: codes, language: name),
+                        const SizedBox(width: 12),
+                        // Copy button
+                        _CopyButton(code: codes),
+                      ],
+                    ),
+                  ),
+                  Container(height: 1, color: const Color(0xFF2A2A2A)),
+                  // Modal Content
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1A1A1A),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(16),
+                          bottomRight: Radius.circular(16),
+                        ),
+                      ),
                       child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: HighlightView(
-                          codes,
-                          language: name.toLowerCase(),
-                          theme: _getSyntaxTheme(),
-                          textStyle: TextStyle(
-                            fontFamily: 'JetBrainsMono',
-                            fontSize: fontSize,
-                            height: 1.6,
-                            color: Colors.white,
+                        controller: controller,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: HighlightView(
+                            codes,
+                            language: name.toLowerCase(),
+                            theme: _getSyntaxTheme(),
+                            textStyle: TextStyle(
+                              fontFamily: 'JetBrainsMono',
+                              fontSize: fontSize,
+                              height: 1.6,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         );
