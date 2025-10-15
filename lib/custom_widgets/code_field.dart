@@ -253,10 +253,10 @@ class CodeField extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 4),
                   // Share button
                   _ShareButton(code: codes, language: name),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 4),
                   // Copy button
                   _CopyButton(code: codes),
                 ],
@@ -372,10 +372,10 @@ class CodeField extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 4),
                         // Share button
                         _ShareButton(code: codes, language: name),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 4),
                         // Copy button
                         _CopyButton(code: codes),
                       ],

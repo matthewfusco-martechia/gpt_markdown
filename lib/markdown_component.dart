@@ -835,10 +835,10 @@ class TableMd extends BlockMd {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 4),
                   // Share button
                   _ShareButton(markdown: text),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 4),
                   // Copy button
                   _CopyButton(code: text),
                 ],
@@ -982,10 +982,10 @@ class TableMd extends BlockMd {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 4),
                         // Share button
                         _ShareButton(markdown: markdown),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 4),
                         // Copy button
                         _CopyButton(code: markdown),
                       ],
