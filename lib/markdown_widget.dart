@@ -1,7 +1,7 @@
 // Automatic FlutterFlow imports
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
-import 'package:ff_theme/flutter_flow/flutter_flow_theme.dart';
+import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart'; // Imports other custom widgets
 import '/custom_code/actions/index.dart'; // Imports custom actions
@@ -144,28 +144,15 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Debug logging
-    print('=== MARKDOWN PROCESSING ===');
-    print('Input length: ${widget.data.length}');
-    print('Contains <think>: ${widget.data.contains('<think>')}');
-
     // Extract all think segments (supports streaming/incomplete) and main content
     final thinkSegments = _parseThinkSegments(widget.data);
     final mainContent = _stripThinkSegments(widget.data, thinkSegments);
-
-    final totalThinkLength =
-        thinkSegments.fold<int>(0, (sum, seg) => sum + seg.content.length);
-    print('Think content total length: $totalThinkLength');
-    print('Main content length: ${mainContent.length}');
 
     final widgets = <Widget>[];
 
     // Add a ThinkBlock for each parsed segment, streaming-safe
     for (final seg in thinkSegments) {
       final isComplete = seg.completeAttr ?? (seg.endIndex != null);
-      print('Adding think block (complete=$isComplete)');
-      final safeTailStart = math.max(0, widget.data.length - 50);
-      print('Data ends with: ${widget.data.substring(safeTailStart)}');
 
       widgets.add(ThinkBlock(
         content: seg.content.trim(),
@@ -180,9 +167,6 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
 
     // Add main content
     if (mainContent.trim().isNotEmpty) {
-      print('Adding main content');
-      print(
-          'Main content preview: ${mainContent.substring(0, math.min(50, mainContent.length))}...');
       if (_cachedMainSource != mainContent) {
         _cachedMainSource = mainContent;
         _cachedMainWidget = _buildEnhancedMarkdown(mainContent);
@@ -191,9 +175,6 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
         widgets.add(_cachedMainWidget!);
       }
     }
-
-    print('Total widgets created: ${widgets.length}');
-    print('=== END PROCESSING ===');
 
     return SizedBox(
       width: widget.width,
@@ -209,27 +190,27 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
   bool _shouldAutoEnableMathMode(String content) {
     // FOR NOW: Be extremely conservative - only enable math mode for very obvious cases
     // Check if content has clear LaTeX commands that are unambiguous
-    
+
     // Only enable if we find LaTeX commands like \frac, \sum, \alpha, etc.
     if (content.contains(RegExp(r'\\[a-zA-Z]+'))) {
       return true;
     }
-    
+
     // Only enable if we find Greek letters
     if (content.contains(RegExp(r'[αβγδεζηθικλμνξοπρστυφχψω]'))) {
       return true;
     }
-    
+
     // Only enable if we find clear math notation like superscripts/subscripts
     if (content.contains(RegExp(r'[\^_{}]'))) {
       return true;
     }
-    
+
     // Only enable if we find mathematical symbols
     if (content.contains(RegExp(r'[≤≥≠∑∏∫]'))) {
       return true;
     }
-    
+
     // For everything else (including all financial content), stay in currency mode
     return false;
   }
@@ -241,11 +222,15 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
       return true;
     }
     // Number ranges like "50-100" or "50 - 100"
-    if (RegExp(r'^\d+(?:[,.]?\d+)*(?:\s*-\s*\d+(?:[,.]?\d+)*)?$').hasMatch(content)) {
+    if (RegExp(r'^\d+(?:[,.]?\d+)*(?:\s*-\s*\d+(?:[,.]?\d+)*)?$')
+        .hasMatch(content)) {
       return true;
     }
     // Numbers with common currency context words
-    if (RegExp(r'^\d+(?:[,.]?\d+)*(?:\.\d{2})?\s*(?:per|each|total|worth|spent|cost|price|value)', caseSensitive: false).hasMatch(content)) {
+    if (RegExp(
+            r'^\d+(?:[,.]?\d+)*(?:\.\d{2})?\s*(?:per|each|total|worth|spent|cost|price|value)',
+            caseSensitive: false)
+        .hasMatch(content)) {
       return true;
     }
     // Decimal numbers (likely currency)
@@ -285,9 +270,10 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
   bool _hasMathVariables(String content) {
     // Has variables and is not just currency abbreviation
     return content.contains(RegExp(r'[a-zA-Z]')) && // Has letters
-           content.length > 1 && // Not just single letter
-           !RegExp(r'^\d+[KMB]?$').hasMatch(content) && // Not currency abbreviation
-           !RegExp(r'^[A-Z]+$').hasMatch(content); // Not just acronym
+        content.length > 1 && // Not just single letter
+        !RegExp(r'^\d+[KMB]?$')
+            .hasMatch(content) && // Not currency abbreviation
+        !RegExp(r'^[A-Z]+$').hasMatch(content); // Not just acronym
   }
 
   Widget _buildEnhancedMarkdown(String content) {
@@ -394,10 +380,11 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             decoration: BoxDecoration(
-              color: widget.iconFillColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(4),
+              color: Color(0xFF1F1F21).withOpacity(
+                  1), // Container background color - increased opacity
+              borderRadius: BorderRadius.circular(7), // Increased border radius
               border: Border.all(
-                color: widget.iconBorderColor.withOpacity(0.3),
+                color: Color(0xFF1F1F21).withOpacity(0.3), // Border color
                 width: 1,
               ),
             ),
@@ -414,7 +401,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
                   label.toPlainText(),
                   style: TextStyle(
                     color: widget.mdcolor,
-                    fontFamily: 'Courier New',
+                    fontFamily: 'SF Pro Rounded', // Your app's primary font
                     fontSize: widget.fontSize * 0.9,
                     fontWeight: FontWeight.w500,
                     height: 1.2,
@@ -429,7 +416,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
       // DEBUG: Force disable ALL dollar sign processing to isolate the issue
       // This will prevent any $...$ patterns from being processed as LaTeX
       useDollarSignsForLatex: false,
-      
+
       // Selection parameters
       selectable: widget.selectable,
       selectionColor: widget.selectionColor,
