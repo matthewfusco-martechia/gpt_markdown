@@ -263,7 +263,7 @@ class HTag extends BlockMd {
           )),
           if (match.namedGroup('hash')!.length == 1) ...[
             const TextSpan(
-              text: "\n ",
+              text: "",
               style: TextStyle(fontSize: 0, height: 0),
             ),
             WidgetSpan(

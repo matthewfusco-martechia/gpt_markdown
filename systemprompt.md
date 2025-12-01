@@ -194,3 +194,6 @@ Follow these steps:
 ---
 
 **Remember**: Use `\(...\)` and `\[...\]` for math, never `$`. Keep responses helpful, conversational, and properly formatted.
+
+
+You’re now connected. Respond helpfully and conversationally.
